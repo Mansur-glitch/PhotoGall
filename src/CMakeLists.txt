@@ -13,8 +13,3 @@ target_compile_definitions(app PRIVATE MAIN_QML_PATH=${main_qml_path})
 
 target_include_directories(app PRIVATE Qt6::Widgets Qt6::Quick)
 target_link_libraries(app Qt6::Widgets Qt6::Quick)
-
-# Copy compile_commands.json to /build directory
-get_copy_script_cmd(${project_build_specific}/compile_commands.json
-                    ${project_build_root} copy_cmd)
-add_custom_command(TARGET app POST_BUILD COMMAND ${copy_cmd})
