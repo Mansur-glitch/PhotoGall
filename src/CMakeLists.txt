@@ -1,6 +1,6 @@
 find_package(Qt6 COMPONENTS Widgets Quick REQUIRED)
 add_executable(app
-    main.cpp
+    main.cpp picture_model.cpp
 )
 set(main_qml_file main.qml)
 target_sources(app PRIVATE ${main_qml_file})
