@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.24.0)
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/utils.cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(utils)
 
 cmake_path(GET CMAKE_CURRENT_SOURCE_DIR FILENAME project_name)
 project($project_name VERSION 0.0.1 LANGUAGES CXX)
@@ -13,8 +14,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Add app target
+# Add lib and app targets
 add_subdirectory(src "${CMAKE_CURRENT_BINARY_DIR}/app")
+
+# Add test targets
+add_subdirectory(test "${CMAKE_CURRENT_BINARY_DIR}/test")
 
 # Copy compile_commands.json to /build directory if needed
 if(NOT "${project_build_specific}" STREQUAL "${project_build_root}")
