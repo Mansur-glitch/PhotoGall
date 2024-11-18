@@ -5,7 +5,10 @@
 #include <QDate>
 #include <QDir>
 #include <QAbstractItemModel>
-#include <qobject.h>
+#include <cstdint>
+#include <qcontainerfwd.h>
+#include <qdatetime.h>
+#include <qfileinfo.h>
 
 struct PictureInfo
 {
@@ -22,44 +25,55 @@ struct PictureInfo
   } resolution {0, 0};
 };
 
-class PictureCollection: public QObject
-{
-  Q_OBJECT
-public:
-  PictureCollection(QObject* parent = nullptr);
-  // void connectProvider(PictureProvider&);
-  // void queryProvider();
-  // void updatePictureModel();
-  Collection<PictureInfo>* getCollection();
-private:
-  Collection<PictureInfo> m_collection;
-};
-
 class PictureProvider: public QObject
 {
   Q_OBJECT
 public:
+  enum class FileChangeType
+  {
+    notChanged = 0,
+    added,
+    removed,
+    changed
+  };
+  using ChangedFiles = QList<QPair<QString, FileChangeType>>;
+
+  struct FileChangeInfo
+  {
+    FileChangeType type;    
+    QDateTime modificationTime;
+  };
+
   PictureProvider(QObject* parent = nullptr);
   const QString& getDirectory() const;
   void setDirectory(const QString& directory);
   Q_PROPERTY(QString directory READ getDirectory WRITE setDirectory NOTIFY directoryChanged);
-  // const QList<PictureInfo>& getPictures() const;
-  // Q_PROPERTY(QList<PictureInfo> pictures READ getPictures NOTIFY picturesChanged);
-  PictureCollection* getCollection() const;
-  void setCollection(PictureCollection* collectionProperty);
-  Q_PROPERTY(PictureCollection* collection READ getCollection WRITE setCollection NOTIFY collectionChanged REQUIRED);
+  void updateFiles();
 signals:
   void directoryChanged();
-  void collectionChanged();
-  // void picturesChanged();
+  void picturesChanged(const ChangedFiles changes);
 private: 
-  void updateCollection();
+  void setAllRemoved();
+  void removeMarked();
+  void checkFileChanges(const QFileInfo& file);
+  const ChangedFiles getChanges() const;
 
+  uint32_t m_lookupDepth {0};
   QString m_directory;
-  QStringList m_files;
-  PictureCollection* m_collectionProperty;
-  Collection<PictureInfo>* m_collection;
+  QHash<QString, FileChangeInfo> m_files;
 };
+
+class PictureCollection: public QObject
+{
+  Q_OBJECT
+public:
+  Collection<PictureInfo>* getCollection();
+private:
+  Collection<PictureInfo> m_collection;
+private slots:
+  void picturesChanged(const PictureProvider::ChangedFiles changes);
+};
+
 
 class GroupedPictureModel: public QAbstractItemModel
 {

@@ -1,4 +1,7 @@
 #include "picture_model.hpp"
+#include <cstdint>
+#include <qdatetime.h>
+#include <qfileinfo.h>
 
 PictureCollection::PictureCollection(QObject* parent)
 : QObject(parent), m_collection()
@@ -10,7 +13,7 @@ Collection<PictureInfo>* PictureCollection::getCollection()
 }
 
 PictureProvider::PictureProvider(QObject* parent)
-: QObject(parent), m_collection(nullptr), m_collectionProperty(nullptr), m_directory(), m_files()
+: QObject(parent), m_directory(), m_lookupDepth(0)
 {}
 
 const QString& PictureProvider::getDirectory() const
@@ -18,13 +21,8 @@ const QString& PictureProvider::getDirectory() const
   return m_directory;
 }
 
-void PictureProvider::updateCollection()
+void PictureCollection::picturesChanged(const PictureProvider::ChangedFiles changes)
 {
-  m_collection->clearData();
-  QDir qdir(m_directory);
-  qdir.setFilter(QDir::Files);
-  QFileInfoList infoList = qdir.entryInfoList();
-
   QList<PictureInfo> newItems;
   for (const QFileInfo& fileInfo: infoList) {
     PictureInfo p;
@@ -37,30 +35,85 @@ void PictureProvider::updateCollection()
   m_collection->addItems(newItems);
 }
 
-void PictureProvider::setDirectory(const QString& directory)
+void PictureProvider::setAllRemoved()
 {
-  if (m_directory != directory) {
-    m_directory = directory;
-    emit directoryChanged();
-    if (m_collection != nullptr) {
-      updateCollection();
+  for (auto& value: m_files) {
+    value.type = FileChangeType::removed;
+  }
+}
+  
+const QList<QPair<QString, PictureProvider::FileChangeType>> PictureProvider::getChanges() const
+{
+  QList<QPair<QString, FileChangeType>> changes;
+
+  for (const auto [filePath, changeInfo]:  m_files.asKeyValueRange()) {
+    if (changeInfo.type == FileChangeType::notChanged) {
+      continue;
+    }
+    changes.append(QPair<QString, FileChangeType>{filePath, changeInfo.type});
+  }
+  return changes;
+}
+
+void PictureProvider::removeMarked()
+{
+  for (auto it = m_files.begin(); it != m_files.end(); ) {
+    const FileChangeType changeType = it->type;
+    if (changeType == FileChangeType::removed) {
+      it = m_files.erase(it);
+    } else {
+      ++it;
     }
   }
 }
 
-PictureCollection* PictureProvider::getCollection() const
+void PictureProvider::updateFiles()
 {
-  return m_collectionProperty;
+  QDir qdir(m_directory);
+  int currentDepth = 0;
+  QList<QFileInfoList> infoList(m_lookupDepth);
+  QList<uint32_t> entryNum(m_lookupDepth);
+  infoList[0] = qdir.entryInfoList();
+  entryNum[0] = 0;
+  do {
+    for (;entryNum[currentDepth] < infoList[currentDepth].size(); ++entryNum[currentDepth]) {
+      const QFileInfo& fileInfo = infoList[currentDepth][entryNum[currentDepth]]; 
+      if (fileInfo.isDir() && currentDepth < m_lookupDepth) {
+        ++currentDepth;
+        infoList[currentDepth] = QDir(fileInfo.absoluteFilePath()).entryInfoList();
+        entryNum[currentDepth] = 0;
+        continue;
+      }
+      checkFileChanges(fileInfo);
+    }
+    --currentDepth;
+  } while (currentDepth != -1);
 }
 
-void PictureProvider::setCollection(PictureCollection* collection)
+void PictureProvider::checkFileChanges(const QFileInfo& file)
 {
-  if (m_collectionProperty != collection) {
-    m_collectionProperty = collection;
-    m_collection = collection->getCollection();
-    if (! m_directory.isEmpty()) {
-      updateCollection();
-    }
+  QString filePath = file.absoluteFilePath();
+  QDateTime modificationTime = file.fileTime(QFile::FileTime::FileModificationTime);
+  if (! m_files.contains(filePath)) {
+    m_files.insert(filePath, FileChangeInfo{FileChangeType::added, modificationTime});
+  } else if (m_files[filePath].modificationTime != modificationTime) {
+    m_files[filePath].modificationTime = modificationTime;
+    m_files[filePath].type = FileChangeType::changed;
+  } else {
+    m_files[filePath].type = FileChangeType::notChanged;
+  }
+}
+  
+
+void PictureProvider::setDirectory(const QString& directory)
+{
+  if (m_directory != directory) {
+    setAllRemoved();
+    m_directory = directory;
+    updateFiles();
+    emit directoryChanged();
+    emit picturesChanged(getChanges());
+    removeMarked();
   }
 }
 
