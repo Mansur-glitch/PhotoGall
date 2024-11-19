@@ -5,21 +5,21 @@ Window {
     visible: true
     title: qsTr("HelloWorld")
 
-    PictureCollection {
-        id: "mainCollection"
-    }
 
     PictureProvider {
-        collection: mainCollection
         id: "pp"
         directory:  "../../Изображения"
     }
-    
+
+    PictureCollection {
+        id: "mainCollection"
+        provider: pp
+    }
 
     ListView {
         anchors.fill: parent
         model: GroupedPictureModel {
-            collection: pp.collection
+            collection: mainCollection
         }
         delegate: Text {
             text: model.display

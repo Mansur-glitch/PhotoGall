@@ -297,6 +297,7 @@ public:
 
   QList<uint32_t>& getIndexes() {return m_indexes;}
   QList<ElementTy>& getData() {return m_data;}
+  const QList<ElementTy>& getData() const {return m_data;}
   QBitArray& getPresenceMarks() {return m_presenceMarks;}
 private:
 

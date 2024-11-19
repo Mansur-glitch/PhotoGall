@@ -5,9 +5,11 @@
 #include <QDate>
 #include <QDir>
 #include <QAbstractItemModel>
+#include <qtmetamacros.h>
 
 struct PictureInfo
 {
+  QString filePath;
   QString name;
   QString directory;
   QDate date {};
@@ -65,8 +67,17 @@ class PictureCollection: public QObject
 public:
   PictureCollection(QObject* parent = nullptr);
   Collection<PictureInfo>* getCollection();
+  PictureProvider* getProvider() const;
+  void setProvider(PictureProvider*);
+  Q_PROPERTY(PictureProvider* provider READ getProvider WRITE setProvider NOTIFY providerChanged REQUIRED);
+signals:
+  void providerChanged(); 
+  void beforeCollectionDataChange();
+  void afterCollectionDataChanged();
 private:
   Collection<PictureInfo> m_collection;
+  QHash<QString, uint32_t> m_fileIndexes;
+  PictureProvider* m_provider;
 private slots:
   void picturesChanged(const PictureProvider::ChangedFiles changes);
 };
@@ -96,7 +107,9 @@ public:
   Q_PROPERTY(PictureCollection* collection READ getCollection WRITE setCollection NOTIFY collectionChanged REQUIRED);
 signals:
   void collectionChanged();
-
+private slots:
+  void beforeCollectionDataChange();
+  void afterCollectionDataChanged();
 private:
   bool isIndexValid(const QModelIndex& index) const;
   PictureCollection* m_collectionProperty;

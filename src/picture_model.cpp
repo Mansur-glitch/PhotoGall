@@ -2,14 +2,29 @@
 #include <cstdint>
 #include <qdatetime.h>
 #include <qfileinfo.h>
+#include <qobject.h>
 
 PictureCollection::PictureCollection(QObject* parent)
-: QObject(parent), m_collection()
+: QObject(parent), m_collection(), m_fileIndexes(), m_provider(nullptr)
 {}
 
 Collection<PictureInfo>* PictureCollection::getCollection()
 {
   return &m_collection;
+}
+
+PictureProvider* PictureCollection::getProvider() const
+{
+  return m_provider;
+}
+
+void PictureCollection::setProvider(PictureProvider* provider)
+{
+  if (m_provider != provider) {
+    m_provider = provider;
+    QObject::connect(provider, &PictureProvider::picturesChanged, this, &PictureCollection::picturesChanged);
+    emit providerChanged();
+  }
 }
 
 PictureProvider::PictureProvider(QObject* parent)
@@ -23,20 +38,38 @@ const QString& PictureProvider::getDirectory() const
 
 void PictureCollection::picturesChanged(const PictureProvider::ChangedFiles changes)
 {
+  emit beforeCollectionDataChange();
   QList<PictureInfo> newItems;
   for (auto [filePath, changeType]: changes) {
     if (changeType == PictureProvider::FileChangeType::removed) {
-      m_collection.removeItemByInnerIndex();
+      auto it = m_fileIndexes.find(filePath);
+      if (it != m_fileIndexes.end()) {
+        m_collection.removeItemByInnerIndex(*it);
+        m_fileIndexes.erase(it);
+      }
+    } else if (changeType == PictureProvider::FileChangeType::added) {
+      QFileInfo fileInfo(filePath);
+      PictureInfo p;
+      p.filePath = filePath;
+      p.date = fileInfo.fileTime(QFile::FileTime::FileModificationTime).date();
+      p.directory = fileInfo.path();
+      p.name = fileInfo.fileName();
+      p.size = fileInfo.size();
+      newItems.append(p);
+      m_fileIndexes.insert(filePath, 0);
     }
-    QFileInfo fileInfo(filePath);
-    PictureInfo p;
-    p.date = fileInfo.fileTime(QFile::FileTime::FileModificationTime).date();
-    p.directory = fileInfo.path();
-    p.name = fileInfo.fileName();
-    p.size = fileInfo.size();
-    newItems.append(p);
   }
   m_collection.addItems(newItems);
+  // Update collection
+  const volatile uint32_t innerSize = m_collection.innerSize();
+  const QList<PictureInfo>& data = m_collection.getData();
+  uint32_t fileIndex = 0;
+  for (const PictureInfo& i: data) {
+    if (m_fileIndexes.contains(i.filePath)) {
+      m_fileIndexes[i.filePath] = fileIndex++;     
+    }
+  }
+  emit afterCollectionDataChanged();
 }
 
 void PictureProvider::setAllRemoved()
@@ -75,8 +108,8 @@ void PictureProvider::updateFiles()
 {
   QDir qdir(m_directory);
   int currentDepth = 0;
-  QList<QFileInfoList> infoList(m_lookupDepth);
-  QList<uint32_t> entryNum(m_lookupDepth);
+  QList<QFileInfoList> infoList(m_lookupDepth + 1);
+  QList<uint32_t> entryNum(m_lookupDepth + 1);
   infoList[0] = qdir.entryInfoList();
   entryNum[0] = 0;
   do {
@@ -203,5 +236,19 @@ void GroupedPictureModel::setCollection(PictureCollection* collection)
     m_collectionProperty = collection;
     m_collection = collection->getCollection();
     emit collectionChanged();
+    QObject::connect(collection, &PictureCollection::beforeCollectionDataChange,
+                      this, &GroupedPictureModel::beforeCollectionDataChange);
+    QObject::connect(collection, &PictureCollection::afterCollectionDataChanged,
+                       this, &GroupedPictureModel::afterCollectionDataChanged);
   }
+}
+
+void GroupedPictureModel::beforeCollectionDataChange()
+{
+  layoutAboutToBeChanged();
+}
+
+void GroupedPictureModel::afterCollectionDataChanged()
+{
+  layoutChanged();
 }
