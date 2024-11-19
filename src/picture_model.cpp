@@ -1,12 +1,16 @@
 #include "picture_model.hpp"
 
+PictureCollection::PictureCollection(QObject* parent)
+: QObject(parent), m_collection()
+{}
+
 Collection<PictureInfo>* PictureCollection::getCollection()
 {
   return &m_collection;
 }
 
 PictureProvider::PictureProvider(QObject* parent)
-: QObject(parent)
+: QObject(parent), m_collection(nullptr), m_collectionProperty(nullptr), m_directory(), m_files()
 {}
 
 const QString& PictureProvider::getDirectory() const

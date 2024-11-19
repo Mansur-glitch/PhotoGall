@@ -4,6 +4,7 @@
 
 #include <concepts>
 #include <optional>
+#include <qbitarray.h>
 #include <ranges>
 #include <cstdint>
 
@@ -135,98 +136,6 @@ private:
   QList<Sublayout> m_sublayouts;
 };
 
-// class ReinterpretSource
-// {
-// public:
-//   template <class ElementTy>
-//   ReinterpretSource(QList<ElementTy>& source)
-//   : m_source(&source)
-//   {}
-
-//   template <class ElementTy>
-//   QList<ElementTy>& get()
-//   {
-//     return *reinterpret_cast<QList<ElementTy>*>(m_source);
-//   }
-// private:
-//   void* m_source;
-// };
-
-// struct IndexedData
-// {
-//   ReinterpretSource* data;
-//   QList<uint32_t>* indexes;
-// };
-
-
-template <class ElementTy>
-class IndexedSource
-{
-public:
-  IndexedSource()
-  : m_data(), m_indexes()
-  {}
-
-  void clear()
-  {
-    m_data.clear();
-    m_indexes.clear();
-  }
-
-  void addItems(QList<ElementTy> newItems)
-  {
-    const uint32_t prevSize = m_data.size();
-    const uint32_t newSize = prevSize + newItems.size();
-    m_data.append(newItems);
-    std::ranges::iota_view<uint32_t, uint32_t> newIndexes(prevSize, newSize);
-    m_indexes.append(indexListFromView(newIndexes));
-  }
-
-  template <Predicate1Concept<ElementTy> PredTy>
-  Predicate1<uint32_t> getIndexPredicate1(PredTy predicate1)
-  {
-    return [this, predicate1](const uint32_t i0)
-    {
-      return predicate1(m_data[i0]);
-    };
-  }
-
-  template <Predicate2Concept<ElementTy> PredTy>
-  Predicate2<uint32_t> getIndexPredicate2(PredTy predicate2)
-  {
-    return [this, predicate2](const uint32_t i0, const uint32_t i1)
-    {
-      return predicate2(m_data[i0], m_data[i1]);
-    };
-  }
-
-  // template <class T>
-  // struct ChangeToUint
-  // {
-  //   using type = uint32_t;
-  // };
-
-  // template <class ReturnTy, class FuncTy, class ...Args> requires 
-  // std::is_invocable_r_v<ReturnTy, FuncTy, Args...> &&
-  // (std::is_same_v<std::remove_cvref_t<Args>, ElementTy> && ...)
-  // std::function<ReturnTy(typename ChangeToUint<Args>::type...)> makeIndexedFunction(FuncTy func)
-  // {
-  //   return [this, func](typename ChangeToUint<Args>::type... indexes) -> ReturnTy
-  //   {
-  //     return func(m_data[indexes]...);
-  //   };
-  // }
-
-  // ReinterpretSource* getSource() {return &m_source;}
-  QList<uint32_t>& getIndexes() {return m_indexes;}
-  QList<ElementTy>& getData() {return m_data;}
-  // operator IndexedData(){return {&m_source, &m_indexes};}
-private:
-  QList<ElementTy> m_data;
-  QList<uint32_t> m_indexes;
-  // ReinterpretSource m_source;
-};
-
 class CollectionView
 {
 public:
@@ -322,6 +231,80 @@ public:
                const GroupLayoutBase* inputLayout = nullptr);
 };
 
+
+template <class ElementTy>
+class IndexedSource
+{
+public:
+  IndexedSource()
+  : m_data(), m_indexes(), m_presenceMarks()
+  {}
+
+  void clear()
+  {
+    m_data.clear();
+    m_indexes.clear();
+    m_presenceMarks.clear();
+  }
+
+  void addItems(QList<ElementTy> newItems)
+  {
+    const uint32_t oldSize = m_data.size();
+    const uint32_t newSize = oldSize + newItems.size();
+    m_data.append(newItems);
+    std::ranges::iota_view<uint32_t, uint32_t> newIndexes(oldSize, newSize);
+    m_indexes.append(indexListFromView(newIndexes));
+    m_presenceMarks.resize(newSize);
+    m_presenceMarks.fill(true, oldSize, newSize);
+  }
+
+  void markRemoved(uint32_t pos)
+  {
+    m_presenceMarks[pos] = false;
+  }
+
+  void shrinkData()
+  {
+    const uint32_t oldSize = m_data.size();
+    const uint32_t newSize = m_presenceMarks.count();
+    QList<ElementTy> buf(newSize);
+    for (uint32_t i = 0, j = 0; i < oldSize; ++i) {
+      if (m_presenceMarks[i]) {
+        buf[j++] = m_data[i];
+      }
+    }
+    clear();
+    addItems(buf);
+  }
+
+  template <Predicate1Concept<ElementTy> PredTy>
+  Predicate1<uint32_t> getIndexPredicate1(PredTy predicate1)
+  {
+    return [this, predicate1](const uint32_t i0)
+    {
+      return predicate1(m_data[i0]);
+    };
+  }
+
+  template <Predicate2Concept<ElementTy> PredTy>
+  Predicate2<uint32_t> getIndexPredicate2(PredTy predicate2)
+  {
+    return [this, predicate2](const uint32_t i0, const uint32_t i1)
+    {
+      return predicate2(m_data[i0], m_data[i1]);
+    };
+  }
+
+  QList<uint32_t>& getIndexes() {return m_indexes;}
+  QList<ElementTy>& getData() {return m_data;}
+  QBitArray& getPresenceMarks() {return m_presenceMarks;}
+private:
+
+  QList<ElementTy> m_data;
+  QList<uint32_t> m_indexes;
+  QBitArray m_presenceMarks;
+};
+
 template <class ElementTy>
 class Collection
 {
@@ -347,17 +330,22 @@ public:
   };
 
   Collection()
-  : m_source(), m_views(), m_markedRemoved(), m_finalIndexes(), m_finalLayout(),
-  m_nItemsRemoved(0),
-  m_firstViewToUpdate(nViews), m_firstViewToReset(nViews), m_needShrinkData(false)
+  : m_source(), m_views(), m_finalIndexes(), m_finalLayout(),
+  m_nItemsRemoved(0), m_firstViewToUpdate(nViews),
+  m_firstViewToReset(nViews), m_needShrinkData(false)
   {
     for (uint32_t i = 0; i < removingViewId; ++i) {
       m_views.emplace_back(new NullView(m_source.getIndexes()));
     }
-    m_views.emplace_back(new RemovingView(m_source.getIndexes(), m_markedRemoved));
+    m_views.emplace_back(new RemovingView(m_source.getIndexes(), m_source.getPresenceMarks()));
     for (uint32_t i = removingViewId + 1; i < nViews; ++i) {
       m_views.emplace_back(new NullView(m_source.getIndexes()));
     }
+  }
+
+  const QList<ElementTy>& getData() const
+  {
+    return m_source.getData();
   }
 
   uint32_t getInnerIndex(uint32_t pos)
@@ -416,7 +404,6 @@ public:
   void clearData() 
   {
     m_source.clear();
-    m_markedRemoved.clear();
     m_finalIndexes.clear();
     m_finalLayout.clear();
     m_nItemsRemoved = 0;
@@ -426,6 +413,7 @@ public:
     m_firstViewToReset = 0;
   }
 
+  // TEST
   std::optional<uint32_t> find(const ElementTy& item)
   {
     if (needUpdate()) {
@@ -440,24 +428,23 @@ public:
 
   void addItems(QList<ElementTy> items)
   {
-    const uint32_t oldSize = m_source.getData().size(); 
     m_source.addItems(items);
-    const uint32_t newSize = m_source.getData().size(); 
-    m_markedRemoved.resize(newSize);
-    m_markedRemoved.fill(true, oldSize, newSize);
-
     m_firstViewToUpdate = 0;
   }
 
-  void removeItemAt(uint32_t pos)
+  void removeItemByInnerIndex(uint32_t index)
   {
-    const uint32_t innerIndex = m_finalIndexes[pos]; 
-    m_markedRemoved[innerIndex] = false;
+    m_source.markRemoved(index);
     if (++m_nItemsRemoved * 2 > m_source.getData().size()) {
       m_needShrinkData = true;
     }
 
     m_firstViewToUpdate = std::min(m_firstViewToUpdate, removingViewId);
+  }
+
+  void removeItemAt(uint32_t pos)
+  {
+    removeItemByInnerIndex(m_finalIndexes[pos]); 
   }
 
   void removeItem(const ElementTy& item)
@@ -535,6 +522,7 @@ public:
   static constexpr uint32_t nMaxGroupings = 3;
   static constexpr uint32_t nMaxFilters = 3;
 private:
+
   static constexpr uint32_t grouping0ViewId = 0;
   static constexpr uint32_t filtering0ViewId = grouping0ViewId + nMaxGroupings;
   static constexpr uint32_t removingViewId = filtering0ViewId + nMaxFilters;
@@ -559,23 +547,6 @@ private:
       m_views[i]->reset();
       inputLayout = m_views[i]->outputLayout();
     }    
-  }
-
-  void shrinkData()
-  {
-    const uint32_t oldSize = m_source.getData().size();
-    const uint32_t newSize = oldSize - m_nItemsRemoved;
-    QList<ElementTy> buf(newSize);
-    for (uint32_t i = 0, j = 0; i < oldSize; ++i) {
-      if (m_markedRemoved[i]) {
-        buf[j++] = m_source.getData()[i];
-      }
-    }
-    m_source.clear();
-    m_source.addItems(buf);
-    m_markedRemoved.resize(newSize);
-    m_markedRemoved.fill(true);
-    m_nItemsRemoved = 0;
   }
 
   void updateFinalLayout()
@@ -606,7 +577,8 @@ private:
   void update()
   {
     if (m_needShrinkData) {
-      shrinkData();
+      m_source.shrinkData();
+      m_nItemsRemoved = 0;
       m_firstViewToReset = 0;
       m_needShrinkData = false;
     }
@@ -628,7 +600,6 @@ private:
 
   IndexedSource<ElementTy> m_source;
   std::vector<std::unique_ptr<CollectionView>> m_views;
-  QBitArray m_markedRemoved;
   uint32_t m_nItemsRemoved;
   QList<uint32_t> m_finalIndexes;
   QList<Group> m_finalLayout;

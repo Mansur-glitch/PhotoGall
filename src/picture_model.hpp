@@ -5,6 +5,7 @@
 #include <QDate>
 #include <QDir>
 #include <QAbstractItemModel>
+#include <qobject.h>
 
 struct PictureInfo
 {
@@ -25,6 +26,7 @@ class PictureCollection: public QObject
 {
   Q_OBJECT
 public:
+  PictureCollection(QObject* parent = nullptr);
   // void connectProvider(PictureProvider&);
   // void queryProvider();
   // void updatePictureModel();
