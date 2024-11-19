@@ -5,10 +5,6 @@
 #include <QDate>
 #include <QDir>
 #include <QAbstractItemModel>
-#include <cstdint>
-#include <qcontainerfwd.h>
-#include <qdatetime.h>
-#include <qfileinfo.h>
 
 struct PictureInfo
 {
@@ -67,6 +63,7 @@ class PictureCollection: public QObject
 {
   Q_OBJECT
 public:
+  PictureCollection(QObject* parent = nullptr);
   Collection<PictureInfo>* getCollection();
 private:
   Collection<PictureInfo> m_collection;

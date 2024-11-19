@@ -24,7 +24,11 @@ const QString& PictureProvider::getDirectory() const
 void PictureCollection::picturesChanged(const PictureProvider::ChangedFiles changes)
 {
   QList<PictureInfo> newItems;
-  for (const QFileInfo& fileInfo: infoList) {
+  for (auto [filePath, changeType]: changes) {
+    if (changeType == PictureProvider::FileChangeType::removed) {
+      m_collection.removeItemByInnerIndex();
+    }
+    QFileInfo fileInfo(filePath);
     PictureInfo p;
     p.date = fileInfo.fileTime(QFile::FileTime::FileModificationTime).date();
     p.directory = fileInfo.path();
@@ -32,7 +36,7 @@ void PictureCollection::picturesChanged(const PictureProvider::ChangedFiles chan
     p.size = fileInfo.size();
     newItems.append(p);
   }
-  m_collection->addItems(newItems);
+  m_collection.addItems(newItems);
 }
 
 void PictureProvider::setAllRemoved()
