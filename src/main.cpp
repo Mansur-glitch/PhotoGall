@@ -10,6 +10,7 @@
 #define STRING(str) STR(str)
 #define MISS_DEFINITION(def) static_assert(false, "Missing definition: " STRING(def));
 
+#define MAIN_QML_PATH SDFJKLJJ
 #ifndef MAIN_QML_PATH
 MISS_DEFINITION(MAIN_QML_PATH)
 #endif
@@ -30,6 +31,6 @@ int main(int argc, char** argv)
   // QString appCache = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppConfigLocation);
 
   QGuiApplication app(argc, argv);
-  QQmlApplicationEngine engine(STRING(MAIN_QML_PATH));
+  QQmlApplicationEngine engine(QUrl(u"qrc:/mainqml/main.qml"_qs));
   return app.exec();
 }

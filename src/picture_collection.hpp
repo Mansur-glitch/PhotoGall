@@ -555,18 +555,23 @@ private:
     m_finalIndexes.clear();
     m_finalLayout.clear();
     const QList<uint32_t>& indexes = m_source.getIndexes();
-    const GroupLayoutBase& inputLayout = *m_views[nViews - 1]->outputLayout();
+    const GroupLayoutBase* inputLayout = m_views[nViews - 1]->outputLayout();
 
-    for (uint32_t groupNum = 0; groupNum < inputLayout.countGroups(); ++groupNum) {
-      const Group& g = inputLayout.getByOrder(groupNum);
-      for (uint32_t i = g.begin(); i < g.end(); ++i) {
-        m_finalIndexes.append(indexes[i]);
+    if (inputLayout == nullptr) {
+      m_finalIndexes = indexes;
+      m_finalLayout.append(Group(0, 0, 0, indexes.size()));        
+    } else {
+      for (uint32_t groupNum = 0; groupNum < inputLayout->countGroups(); ++groupNum) {
+        const Group& g = inputLayout->getByOrder(groupNum);
+        for (uint32_t i = g.begin(); i < g.end(); ++i) {
+          m_finalIndexes.append(indexes[i]);
+        }
+        const uint32_t begin = m_finalIndexes.size() - g.size();
+        const uint32_t id = m_finalLayout.size(); 
+        const uint32_t sample = m_finalIndexes[begin];
+        const uint32_t size = g.size();
+        m_finalLayout.append(Group(id, sample, begin, size));        
       }
-      const uint32_t begin = m_finalIndexes.size() - g.size();
-      const uint32_t id = m_finalLayout.size(); 
-      const uint32_t sample = m_finalIndexes[begin];
-      const uint32_t size = g.size();
-      m_finalLayout.append(Group(id, sample, begin, size));        
     }
   }
 

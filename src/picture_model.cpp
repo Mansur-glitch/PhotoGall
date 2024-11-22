@@ -144,7 +144,7 @@ void PictureProvider::checkFileChanges(const QFileInfo& file)
 
 void PictureProvider::setDirectory(const QString& directory)
 {
-  if (m_directory != directory) {
+  if (m_directory != directory && QDir(directory).exists()) {
     setAllRemoved();
     m_directory = directory;
     updateFiles();

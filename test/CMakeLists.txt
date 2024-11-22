@@ -1,6 +1,5 @@
-find_package(Qt6 COMPONENTS Core Test REQUIRED)
+cmake_minimum_required(VERSION 3.24.0)
 
-cmake_minimum_required(VERSION 3.20.0)
 add_executable(test_collection test_collection.cpp)
 target_link_libraries(test_collection PRIVATE core Qt6::Test)
 target_include_directories(test_collection PRIVATE Qt6::Test)
