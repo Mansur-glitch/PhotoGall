@@ -1,5 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Layouts 2.15
+
 import localhost.PictureModel 1.0
 
 Window {
@@ -7,8 +9,6 @@ Window {
     visible: true
     title: qsTr("PhotoGall")
     property real aspectRatio: width / height
-    property int toolPanelOrientation: aspectRatio > 1.0 ? Qt.Horizontal: Qt.Vertical
-    property bool toolPanelAfterGallery: true
 
     PictureProvider {
         id: "pp"
@@ -28,13 +28,61 @@ Window {
             anchors.centerIn: parent
             width: parent.width
             height: parent.height
-            color: "black"
+            color: "green"
             anchors.right: parent.right
 
-            Text {
-                anchors.centerIn: toolPanel
-                text: "T: " + mainWnd.aspectRatio + " " + mainWnd.toolPanelOrientation
-                color: "white"
+            Flow {
+                anchors.fill: parent
+                anchors.margins: 4
+                spacing: 10
+                Rectangle {
+                    width: childrenRect.width + 20
+                    height: childrenRect.height + 20
+                    color: "transparent"
+                    border.color: "black"
+                    ColumnLayout {
+                        x: 10
+                        y: 10
+                        Label {
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                            text: qsTr("Tool panel position")
+                        }
+                        RowLayout {
+                            Label {
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                text: mainSplit.orientation == Qt.Horizontal ? qsTr("Left") : qsTr("Top")
+                            }
+                            Switch {
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                id: "splitLayoutSwitch"
+                                checked: false
+                                onToggled: {
+                                    mainSplit.toolsFirst = ! mainSplit.toolsFirst;
+                                }
+                            }
+                            Label {
+                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                                text: mainSplit.orientation == Qt.Horizontal ? qsTr("Right") : qsTr("Bottom")
+                            }
+                        }
+                    }
+                }
+            
+                ColumnLayout {
+                    Label {
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                        text: qsTr("Language")
+                    }
+                    ComboBox {
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                        model: ListModel {
+                            id: model
+                            ListElement { text: "Banana" }
+                            ListElement { text: "Apple" }
+                            ListElement { text: "Coconut" }
+                        }
+                    }
+                }
             }
         }
 
@@ -69,101 +117,129 @@ Window {
     SplitView {
         id: "mainSplit"
         anchors.fill: parent
-        orientation: mainWnd.toolPanelOrientation
+        orientation: mainWnd.aspectRatio > 1.0 ? Qt.Horizontal: Qt.Vertical 
+        property bool toolsFirst: true
+        property bool toolsExpanded: true
+        property list<QtObject> splitItems
+        property var toolsItem
+        property var galleryItem
+        onToolsFirstChanged: {
+            var it0 = mainSplit.splitItems[0];
+            var it1 = mainSplit.splitItems[1];
+            var temp = it0.width; it0.SplitView.preferredWidth = it1.width; it1.SplitView.preferredWidth = temp;
+            temp = it0.height; it0.SplitView.preferredHeight = it1.height; it1.SplitView.preferredHeight = temp;
+            temp = it0.SplitView.fillWidth; it0.SplitView.fillWidth = it1.SplitView.fillWidth; it1.SplitView.fillWidth = temp;
+            temp = it0.SplitView.fillHeight; it0.SplitView.fillHeight = it1.SplitView.fillHeight; it1.SplitView.fillHeight = temp;
+            temp = it0.SplitView.minimumWidth; it0.SplitView.minimumWidth = it1.SplitView.minimumWidth; it1.SplitView.minimumWidth = temp;
+            temp = it0.SplitView.minimumHeight; it0.SplitView.minimumHeight = it1.SplitView.minimumHeight; it1.SplitView.minimumHeight = temp;
 
+            if (mainSplit.toolsFirst) {
+                toolPanel.parent = it0;
+                toolsItem = it0;
+                mainPanel.parent = it1;
+                galleryItem = it1;
+            } else {
+                toolPanel.parent = it1;
+                toolsItem = it1;
+                mainPanel.parent = it0;
+                galleryItem = it0;
+            }
+        }
+
+        onToolsExpandedChanged: {
+            if (! toolsExpanded) {
+                toolsItem.savedMinWidth = toolsItem.SplitView.minimumWidth 
+                toolsItem.savedMinHeight = toolsItem.SplitView.minimumHeight 
+                toolsItem.SplitView.minimumWidth = 0
+                toolsItem.SplitView.minimumHeight = 0
+                if (orientation == Qt.Horizontal) {
+                    toolsItem.savedWidth = toolsItem.width
+                    toolsItem.SplitView.preferredWidth = 0
+                } else {
+                    toolsItem.savedHeight = toolsItem.height
+                    toolsItem.SplitView.preferredHeight = 0
+                }
+                toolsItem.visible = false;
+            } else {
+                if (orientation == Qt.Horizontal) {
+                    toolsItem.SplitView.preferredWidth = toolsItem.savedWidth
+                } else {
+                    toolsItem.SplitView.preferredHeight = toolsItem.savedHeight
+                }
+                toolsItem.SplitView.minimumWidth = toolsItem.savedMinWidth
+                toolsItem.SplitView.minimumHeight = toolsItem.savedMinHeight
+                toolsItem.visible = true;
+            }
+        }
         handle: Rectangle {
             id: "handleDelegate"
-            implicitWidth: 8
-            height: 4
+            implicitWidth: mainSplit.orientation == Qt.Horizontal ? 8: 4
+            height: mainSplit.orientation == Qt.Horizontal ? 4: 8
             color: SplitHandle.pressed ? "grey": "blue"
 
             containmentMask: Item {
-                x: (handleDelegate.width - width) / 2
-                width: 64
-                height: mainSplit.height
+                x: mainSplit.orientation == Qt.Horizontal ? (handleDelegate.width - width) / 2: 0
+                y: mainSplit.orientation == Qt.Horizontal ? 0: (handleDelegate.height - height) / 2
+                width: mainSplit.orientation == Qt.Horizontal ? 64: mainSplit.width 
+                height: mainSplit.orientation == Qt.Horizontal ? mainSplit.height: 64
             }
         }
 
-        Rectangle {
+        ItemSavedSize {
             id: "splitFirst"
-            SplitView.minimumWidth:  200
-            SplitView.minimumHeight:  200
+            SplitView.minimumWidth: {SplitView.minimumWidth = 200}
+            SplitView.minimumHeight: {SplitView.minimumWidth = 200}
         }
 
-        Rectangle {
+        ItemSavedSize {
             id: "splitSecond"
-            SplitView.minimumWidth:  200
-            SplitView.minimumHeight:  200
+            SplitView.minimumWidth: {SplitView.minimumWidth = 400}
+            SplitView.minimumHeight: {SplitView.minimumWidth = 400}
         }
 
-        states: [
-            State {
-                name: "toolsAfterGallery"
-                when: mainWnd.toolPanelAfterGallery 
-                ParentChange { target: mainPanel; parent: splitFirst;}
-                ParentChange { target: toolPanel; parent: splitSecond;}
-                PropertyChanges {splitSecond {
-                        SplitView.fillWidth: false  
-                        SplitView.fillHeight: false
-                        implicitHeight: 200;
-                        implicitWidth: 200;
-                    }
-                }
-                PropertyChanges {splitFirst {
-                        SplitView.fillWidth: true  
-                        SplitView.fillHeight: true
-                        implicitHeight: 400;
-                        implicitWidth: 400;
-                    }
-                }
-            },
-            State {
-                name: "galleryAfterTools"
-                when: ! mainWnd.toolPanelAfterGallery 
-                ParentChange { target: mainPanel; parent: splitSecond;}
-                ParentChange { target: toolPanel; parent: splitFirst;}
-                PropertyChanges {splitFirst {
-                        SplitView.fillWidth: false  
-                        SplitView.fillHeight: false
-                        implicitHeight: 200;
-                        implicitWidth: 200;
-                    }
-                }
-                PropertyChanges {splitSecond {
-                        SplitView.fillWidth: true  
-                        SplitView.fillHeight: true
-                        implicitHeight: 400;
-                        implicitWidth: 400;
-                    }
-                }
-            }
-        ]
+        Component.onCompleted: {
+            splitItems.length = 2
+            splitItems[0] = splitFirst
+            splitItems[1] = splitSecond
+            toolPanel.parent = splitFirst
+            mainPanel.parent = splitSecond
+            toolsItem = splitFirst
+            galleryItem = splitSecond
+        }
     }
 
     Image {
         id: "splitButton"
         source: "images/double_left.png"
-        x: splitFirst.x + splitFirst.width
-        y: splitFirst.y + splitFirst.height / 2
-        // color: "red"
         width: 50
         height: 50
+        x: {
+            var fullWidth = mainSplit.width
+            var splitPos = splitFirst.width
+            if (mainSplit.orientation == Qt.Vertical) {
+                return fullWidth / 2 - width / 2
+            }
+            var base = mainSplit.toolsExpanded ? splitPos: (mainSplit.toolsFirst ? 0: mainSplit.width)
+            var offset = mainSplit.toolsFirst ^ mainSplit.toolsExpanded  ? 0: -width
+            console.log(base, offset)
+            return base + offset
+        }
+        y: {
+            var fullHeight = mainSplit.height
+            var splitPos = splitFirst.height
+            if (mainSplit.orientation == Qt.Horizontal) {
+                return fullHeight / 2 - height / 2
+            }
+            var base = mainSplit.toolsExpanded ? splitPos: (mainSplit.toolsFirst ? 0: mainSplit.height)
+            var offset = mainSplit.toolsFirst ^ mainSplit.toolsExpanded  ? 0: -height
+            return base + offset
+        }
         z: mainSplit.z + 1
 
         MouseArea {
             anchors.fill: parent
-            property bool galleryFirst: false
             onClicked: {
-                galleryFirst = ! galleryFirst
-                if (galleryFirst) {
-                    splitButton.mirror = false
-                    // splitButton.color = "yellow"
-                    mainWnd.toolPanelAfterGallery = true
-                } else {
-                    // splitButton.color = "magenta"
-                    splitButton.mirror = true
-                    mainWnd.toolPanelAfterGallery = false
-                }
+                mainSplit.toolsExpanded = ! mainSplit.toolsExpanded 
             }
         }
     }
