@@ -68,18 +68,31 @@ Window {
                     }
                 }
             
-                ColumnLayout {
-                    Label {
-                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                        text: qsTr("Language")
-                    }
-                    ComboBox {
-                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                        model: ListModel {
-                            id: model
-                            ListElement { text: "Banana" }
-                            ListElement { text: "Apple" }
-                            ListElement { text: "Coconut" }
+                Rectangle {
+                    width: childrenRect.width + 20
+                    height: childrenRect.height + 20
+                    color: "transparent"
+                    border.color: "black"
+                    ColumnLayout {
+                        x: 10
+                        y: 10
+                        Label {
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                            text: qsTr("Language")
+                        }
+                        ComboBox {
+                            id: "languageChangeList"
+                            objectName: "languageChangeList"
+                            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                            signal languageChanged(newLang: string)
+                            onActivated: {
+                                languageChangeList.languageChanged(currentText);
+                            }
+                            model: ListModel {
+                                id: model
+                                ListElement { text: "en" }
+                                ListElement { text: "ru" }
+                            }
                         }
                     }
                 }
@@ -221,7 +234,6 @@ Window {
             }
             var base = mainSplit.toolsExpanded ? splitPos: (mainSplit.toolsFirst ? 0: mainSplit.width)
             var offset = mainSplit.toolsFirst ^ mainSplit.toolsExpanded  ? 0: -width
-            console.log(base, offset)
             return base + offset
         }
         y: {

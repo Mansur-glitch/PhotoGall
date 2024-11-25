@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24.0)
 
-qt_add_qml_module(mainqml
-    URI mainqml
+qt_add_qml_module(mainqml URI mainqml
+    RESOURCE_PREFIX /
     QML_FILES
         main.qml
         ItemSavedSize.qml
