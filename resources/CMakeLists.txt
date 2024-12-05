@@ -5,6 +5,7 @@ qt_add_qml_module(mainqml URI mainqml
     QML_FILES
         main.qml
         ItemSavedSize.qml
+        DirectoryTree.qml
     RESOURCES
         images/double_left.png
     STATIC

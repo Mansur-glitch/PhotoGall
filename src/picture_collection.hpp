@@ -266,7 +266,7 @@ public:
   void shrinkData()
   {
     const uint32_t oldSize = m_data.size();
-    const uint32_t newSize = m_presenceMarks.count();
+    const uint32_t newSize = m_presenceMarks.count(true);
     QList<ElementTy> buf(newSize);
     for (uint32_t i = 0, j = 0; i < oldSize; ++i) {
       if (m_presenceMarks[i]) {

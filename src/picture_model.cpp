@@ -245,10 +245,10 @@ void GroupedPictureModel::setCollection(PictureCollection* collection)
 
 void GroupedPictureModel::beforeCollectionDataChange()
 {
-  layoutAboutToBeChanged();
+  emit layoutAboutToBeChanged();
 }
 
 void GroupedPictureModel::afterCollectionDataChanged()
 {
-  layoutChanged();
+  emit layoutChanged();
 }

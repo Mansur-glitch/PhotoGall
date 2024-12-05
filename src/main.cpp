@@ -1,4 +1,5 @@
 #include "picture_model.hpp"
+#include "tree_model.hpp"
 
 #include <QtQml/QQmlApplicationEngine>
 #include <QGuiApplication>
@@ -6,6 +7,9 @@
 #include <QSettings>
 #include <QDir>
 #include <QTranslator>
+#include <qobject.h>
+#include <qqml.h>
+#include <stdexcept>
 
 #define STR(str) #str
 #define STRING(str) STR(str)
@@ -50,25 +54,41 @@ private:
 
 int main(int argc, char** argv)
 {
-  QCoreApplication::setApplicationName(STRING(APPLICATION_NAME));
-  qmlRegisterType<GroupedPictureModel>("localhost.PictureModel", 1, 0, "GroupedPictureModel");
-  qmlRegisterType<PictureCollection>("localhost.PictureModel", 1, 0, "PictureCollection");
-  qmlRegisterType<PictureProvider>("localhost.PictureModel", 1, 0, "PictureProvider");
+  try {
+    QCoreApplication::setApplicationName(STRING(APPLICATION_NAME));
+    qmlRegisterType<GroupedPictureModel>("localhost.PictureModel", 1, 0, "GroupedPictureModel");
+    qmlRegisterType<PictureCollection>("localhost.PictureModel", 1, 0, "PictureCollection");
+    qmlRegisterType<PictureProvider>("localhost.PictureModel", 1, 0, "PictureProvider");
 
-  // QString appConfig = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
-  // QString appCache = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppConfigLocation);
+    qmlRegisterType<DirectoryTreeModel>("localhost.DirectoryTreeModel", 1, 0, "DirectoryTreeModel");
+    qmlRegisterType<DirectoryValidator>("localhost.DirectoryTreeModel", 1, 0, "DirectoryValidator");
 
-  QGuiApplication app(argc, argv);
+    // QString appConfig = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
+    // QString appCache = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppConfigLocation);
 
-  QQmlApplicationEngine engine(QUrl(u"qrc:/mainqml/main.qml"_qs));
+    QGuiApplication app(argc, argv);
+    LoseFocusDetector::s_singletonInstance = LoseFocusDetector::construct(&app); 
+    QQmlApplicationEngine engine;
+    qmlRegisterSingletonInstance("localhost.DirectoryTreeModel", 1, 0, "LoseFocusDetector", LoseFocusDetector::s_singletonInstance);
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
+                     [](QObject* loadedObj)
+                     {
+                       if (! loadedObj) {
+                        throw std::runtime_error("Failed to load Qml");
+                       }
+                     });
+    engine.load(QUrl("qrc:/mainqml/main.qml"));
 
-  Settings settings(&engine);
-  QList<QObject*> rootObjects = engine.rootObjects();
-  QObject*languageChangeList = rootObjects[0]->findChild<QObject*>("languageChangeList");
-  QObject::connect(languageChangeList, SIGNAL(languageChanged(QString)),
-                    &settings, SLOT(handleChangeLanguage(QString)));
+    Settings settings(&engine);
+    QList<QObject*> rootObjects = engine.rootObjects();
+    QObject* languageChangeList = rootObjects[0]->findChild<QObject*>("languageChangeList");
+    QObject::connect(languageChangeList, SIGNAL(languageChanged(QString)),
+                      &settings, SLOT(handleChangeLanguage(QString)));
 
-  return app.exec();
+    return app.exec();
+  } catch (std::exception& e) {
+    qDebug()<<e.what();
+  }
 }
 
 #include "main.moc"
