@@ -1,4 +1,4 @@
-#include "picture_collection.hpp"
+#include "collection.hpp"
 
 //#include <boost/algorithm/apply_permutation.hpp>
 //#include <boost/compute/algorithm/detail/binary_find.hpp>

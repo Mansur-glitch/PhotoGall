@@ -16,7 +16,7 @@ qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES en ru)
 
 # App exe target
 qt_add_executable(app)
-target_sources(app PRIVATE src/main.cpp src/picture_model.cpp)
+target_sources(app PRIVATE src/main.cpp src/picture_provider.cpp src/picture_list_model.cpp src/utility.cpp)
 
 # Add core lib target
 add_subdirectory(src "${CMAKE_CURRENT_BINARY_DIR}/corelib")

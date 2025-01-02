@@ -139,17 +139,19 @@ public:
 
     void setTreeRoot(QString rootDirectory);
     QString getTreeRoot() const;
+    bool isFilesystemRoot() const;
+    void updateIsFilesystemRoot();
 
-    // Q_INVOKABLE bool mayExpand(const QModelIndex& nodeIndex);
-    // Q_INVOKABLE void updateTree();
     Q_INVOKABLE QString getPath(const QModelIndex& nodeIndex); 
     Q_INVOKABLE void expandChildAtIndex(const QModelIndex& index); 
     Q_INVOKABLE void setUpperRoot();
     Q_INVOKABLE void downRootTo(const QModelIndex& index);
 
     Q_PROPERTY(QString rootDirectory READ getTreeRoot WRITE setTreeRoot NOTIFY treeRootChanged);
+    Q_PROPERTY(bool isFilesystemRoot READ isFilesystemRoot NOTIFY isFileSystemRootChanged);
 signals:
   void treeRootChanged();
+  void isFileSystemRootChanged();
 private:
     DirectoryNode* getNodeFromModelIndex(const QModelIndex& nodeIndex) const;
     void loadChildren(const QModelIndex& nodeIndex);
@@ -157,33 +159,6 @@ private:
     void updateTree(const QModelIndex& nodeIndex);
 
     DirectoryNode::NodeUPtr m_root;
+    bool m_prevIsFilesystemRoot;
 };
 
-class DirectoryValidator: public QValidator
-{
-  Q_OBJECT
-public:
-  QValidator::State validate(QString &input, int &pos) const override;
-};
-
-class LoseFocusDetector: public QObject
-{
-  Q_OBJECT
-  QML_FOREIGN(LoseFocusDetector)
-  QML_SINGLETON
-
-public:
-  inline static LoseFocusDetector* s_singletonInstance = nullptr;
-  static LoseFocusDetector* construct(QGuiApplication* app);
-  bool eventFilter(QObject *obj, QEvent *event) override;
-  QObject* getFocusedObject() const;
-  void setFocusedObject(QObject* obj);
-  Q_PROPERTY(QObject* focusedObject READ getFocusedObject WRITE setFocusedObject NOTIFY focusedObjectChanged);
-
-signals:
-  void focusedObjectChanged();
-
-private:
-  LoseFocusDetector(){}
-  QQuickItem* m_focusedObject {nullptr};
-};

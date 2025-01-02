@@ -3,11 +3,6 @@
 #include <QDir>
 #include <QTest>
 #include <QAbstractItemModelTester>
-#include <qcontainerfwd.h>
-#include <qdebug.h>
-#include <qtestcase.h>
-
-
 
 class TestTreeModel: public QObject
 {

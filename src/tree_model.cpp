@@ -179,6 +179,21 @@ void DirectoryTreeModel::setTreeRoot(QString rootDirectory)
     endResetModel();
     loadChildren({});
     emit treeRootChanged();
+    updateIsFilesystemRoot();
+  }
+}
+
+bool DirectoryTreeModel::isFilesystemRoot() const
+{
+  return QDir(m_root->data().getPath()).isRoot();
+}
+
+void DirectoryTreeModel::updateIsFilesystemRoot()
+{
+  bool currentIsFilesystemRoot = isFilesystemRoot();
+  if (currentIsFilesystemRoot != m_prevIsFilesystemRoot) {
+    m_prevIsFilesystemRoot = currentIsFilesystemRoot;
+    emit isFileSystemRootChanged();
   }
 }
 
@@ -357,6 +372,7 @@ void DirectoryTreeModel::setUpperRoot()
   endInsertRows();
   updateTree({});
   emit treeRootChanged();
+  updateIsFilesystemRoot();
 }
 
 void DirectoryTreeModel::downRootTo(const QModelIndex& nodeIndex)
@@ -378,78 +394,5 @@ void DirectoryTreeModel::downRootTo(const QModelIndex& nodeIndex)
     updateTree({});
   }
   emit treeRootChanged();
-}
-
-QValidator::State DirectoryValidator::validate(QString &input, int &pos) const
-{
-  QDir qdir(input);
-  if (qdir.exists()) {
-    return State::Acceptable;
-  }
-  return State::Intermediate;
-}
-
-// LoseFocusDetector* LoseFocusDetector::create(QQmlEngine*, QJSEngine* engine)
-// {
-//   // The instance has to exist before it is used. We cannot replace it.
-//   Q_ASSERT(s_singletonInstance);
-
-//   // The engine has to have the same thread affinity as the singleton.
-//   Q_ASSERT(engine->thread() == s_singletonInstance->thread());
-
-//   // There can only be one engine accessing the singleton.
-//   if (s_engine)
-//       Q_ASSERT(engine == s_engine);
-//   else
-//       s_engine = engine;
-
-//   // Explicitly specify C++ ownership so that the engine doesn't delete
-//   // the instance.
-//   QJSEngine::setObjectOwnership(s_singletonInstance,
-//                                 QJSEngine::CppOwnership);
-//   return s_singletonInstance;
-// }
-
-LoseFocusDetector* LoseFocusDetector::construct(QGuiApplication* app)
-{
-  static LoseFocusDetector detector;
-  app->installEventFilter(&detector);
-  return &detector;
-}
-
-bool LoseFocusDetector::eventFilter(QObject *obj, QEvent *event)
-{
-  if (event->type() == QEvent::MouseButtonRelease) {
-    if (m_focusedObject == nullptr) {
-      return false;
-    }
-    QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-    QPointF coords = m_focusedObject->mapToGlobal(0, 0);
-    QRectF bounds = QRectF(coords.x(), coords.y(),
-                           m_focusedObject->bindableWidth().value(),
-                           m_focusedObject->bindableHeight().value());
-    if (! bounds.contains(mouseEvent->globalPosition())) {
-      m_focusedObject->setFocus(false, Qt::FocusReason::MouseFocusReason);
-      setFocusedObject(nullptr);
-    }
-  }
-  return false;
-}
-
-QObject* LoseFocusDetector::getFocusedObject() const
-{
-  return m_focusedObject;
-}
-
-void LoseFocusDetector::setFocusedObject(QObject* obj)
-{
-  if (m_focusedObject != obj) {
-    if (obj != nullptr) {
-      m_focusedObject = qobject_cast<QQuickItem*>(obj);
-      Q_ASSERT(m_focusedObject);
-    } else {
-      m_focusedObject = nullptr;
-    }
-    emit focusedObjectChanged();
-  }
+  updateIsFilesystemRoot();
 }

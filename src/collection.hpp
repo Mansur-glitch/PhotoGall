@@ -21,10 +21,17 @@ QList<uint32_t> indexListFromView(ViewTy view)
 }
 
 template <class PredTy, class ElementTy>
-concept Predicate1Concept = std::predicate<PredTy, const ElementTy&> && std::copyable<PredTy>;
+concept Predicate1Concept = std::predicate<PredTy, const ElementTy&>;
 
 template <class PredTy, class ElementTy>
-concept Predicate2Concept = std::predicate<PredTy, const ElementTy&, const ElementTy> && std::copyable<PredTy>;
+concept Predicate2Concept = std::predicate<PredTy, const ElementTy&, const ElementTy>;
+
+template <class InvokableTy, class ElementTy>
+concept ToStringFuncConcept = std::invocable<InvokableTy, const ElementTy&>
+                             && std::copyable<InvokableTy>
+                             && requires (ElementTy el) {
+                               { InvokableTy{}(el) } -> std::same_as<QString>;
+                             };
 
 template <class ElementTy>
 using Predicate1 = std::function<bool(const ElementTy&)>;
@@ -331,7 +338,7 @@ public:
   };
 
   Collection()
-  : m_source(), m_views(), m_finalIndexes(), m_finalLayout(),
+  : m_source(), m_views(), m_finalIndexes(), m_finalLayout(), m_finalFilter(),
   m_nItemsRemoved(0), m_firstViewToUpdate(nViews),
   m_firstViewToReset(nViews), m_needShrinkData(false)
   {
@@ -386,6 +393,11 @@ public:
     return m_finalIndexes.size();
   }
 
+  const QBitArray& getVisibleMask() const
+  {
+    return m_finalFilter;
+  }
+
   uint32_t countGroups()
   {
     if (needUpdate()) {
@@ -407,6 +419,7 @@ public:
     m_source.clear();
     m_finalIndexes.clear();
     m_finalLayout.clear();
+    m_finalFilter.clear();
     m_nItemsRemoved = 0;
     m_needShrinkData = false;
     // Clear cached layouts
@@ -433,6 +446,11 @@ public:
     m_firstViewToUpdate = 0;
   }
 
+  bool isInnerIndexPresent(uint32_t index)
+  {
+    return m_finalFilter[index];
+  }
+
   void removeItemByInnerIndex(uint32_t index)
   {
     m_source.markRemoved(index);
@@ -440,7 +458,7 @@ public:
       m_needShrinkData = true;
     }
 
-    m_firstViewToUpdate = std::min(m_firstViewToUpdate, removingViewId);
+    m_firstViewToReset = std::min(m_firstViewToReset, removingViewId);
   }
 
   void removeItemAt(uint32_t pos)
@@ -455,8 +473,8 @@ public:
     }
   }
 
-  template <Predicate2Concept<ElementTy> PredTy>
-  void setGrouping(uint32_t groupingNum, PredTy sameGroupPred, PredTy groupLessPred)
+  template <Predicate2Concept<ElementTy> PredTy1, Predicate2Concept<ElementTy> PredTy2>
+  void setGrouping(uint32_t groupingNum, PredTy1 sameGroupPred, PredTy2 groupLessPred)
   {
     assert(groupingNum < nMaxGroupings);
     const uint32_t viewId = grouping0ViewId + groupingNum;
@@ -554,17 +572,22 @@ private:
   {
     m_finalIndexes.clear();
     m_finalLayout.clear();
+    m_finalFilter.clear();
     const QList<uint32_t>& indexes = m_source.getIndexes();
     const GroupLayoutBase* inputLayout = m_views[nViews - 1]->outputLayout();
+    m_finalFilter.resize(indexes.size());
 
     if (inputLayout == nullptr) {
       m_finalIndexes = indexes;
       m_finalLayout.append(Group(0, 0, 0, indexes.size()));        
+      m_finalFilter.fill(true);
     } else {
+      m_finalFilter.fill(false);
       for (uint32_t groupNum = 0; groupNum < inputLayout->countGroups(); ++groupNum) {
         const Group& g = inputLayout->getByOrder(groupNum);
         for (uint32_t i = g.begin(); i < g.end(); ++i) {
           m_finalIndexes.append(indexes[i]);
+          m_finalFilter[indexes[i]] = true;
         }
         const uint32_t begin = m_finalIndexes.size() - g.size();
         const uint32_t id = m_finalLayout.size(); 
@@ -609,6 +632,7 @@ private:
   uint32_t m_nItemsRemoved;
   QList<uint32_t> m_finalIndexes;
   QList<Group> m_finalLayout;
+  QBitArray m_finalFilter;
 
   uint32_t m_firstViewToUpdate;
   uint32_t m_firstViewToReset;

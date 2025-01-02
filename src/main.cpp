@@ -1,5 +1,7 @@
-#include "picture_model.hpp"
+#include "picture_provider.hpp"
 #include "tree_model.hpp"
+#include "picture_list_model.hpp"
+#include "utility.hpp"
 
 #include <QtQml/QQmlApplicationEngine>
 #include <QGuiApplication>
@@ -7,6 +9,7 @@
 #include <QSettings>
 #include <QDir>
 #include <QTranslator>
+#include <qnamespace.h>
 #include <qobject.h>
 #include <qqml.h>
 #include <stdexcept>
@@ -31,6 +34,58 @@ public:
   Settings(QQmlApplicationEngine* engine, QObject* parent = nullptr)
   : QObject(parent), m_engine(engine), m_translator()
   {} 
+
+  Q_INVOKABLE bool getToolPanelPosition() const noexcept
+  {
+    if (! m_settings.contains("toolPanelPosition")) {
+      return true;
+    }
+    return m_settings.value("toolPanelPosition").toBool();
+  }
+  Q_INVOKABLE void setToolPanelPosition(bool beforeMainPanel)
+  {
+    m_settings.setValue("toolPanelPosition", beforeMainPanel);
+  }
+  Q_INVOKABLE bool getLayoutOrientationAutoChange() const noexcept
+  {
+    if (! m_settings.contains("layoutOrientationAutoChange")) {
+      return true;
+    }
+    return m_settings.value("layoutOrientationAutoChange").toBool();
+  }
+  Q_INVOKABLE void setLayoutOrientationAutoChange(bool changeAutomatically)
+  {
+    m_settings.setValue("layoutOrientationAutoChange", changeAutomatically);
+  }
+  Q_INVOKABLE Qt::Orientation getLayoutOrientation() const noexcept
+  {
+    if (! m_settings.contains("layoutOrientation")) {
+      return Qt::Orientation::Horizontal;
+    }
+    return QVariant(m_settings.value("layoutOrientation")).value<Qt::Orientation>();
+  }
+  Q_INVOKABLE void setLayoutOrientation(Qt::Orientation orientation)
+  {
+    m_settings.setValue("layoutOrientation", orientation);
+  }
+  Q_INVOKABLE int getLanguageNum() const noexcept
+  {
+    if (! m_settings.contains("languangeNum")) {
+      return 0;
+    }
+    return m_settings.value("languangeNum").toInt();
+  }
+  Q_INVOKABLE void setLanguageNum(int num)
+  {
+    m_settings.setValue("languangeNum", num);
+  }
+
+  void applyTranslation()
+  {
+    static constexpr const char* languageList[2] = {"en", "ru"};
+    handleChangeLanguage(languageList[getLanguageNum()]);
+  }
+
 public slots:
   void handleChangeLanguage(QString newLang)
   {
@@ -50,26 +105,28 @@ public slots:
 private:
   QQmlApplicationEngine* m_engine;
   QTranslator m_translator;
+  QSettings m_settings;
 };
 
 int main(int argc, char** argv)
 {
   try {
     QCoreApplication::setApplicationName(STRING(APPLICATION_NAME));
-    qmlRegisterType<GroupedPictureModel>("localhost.PictureModel", 1, 0, "GroupedPictureModel");
-    qmlRegisterType<PictureCollection>("localhost.PictureModel", 1, 0, "PictureCollection");
+    QCoreApplication::setOrganizationName("Useless soft 112233");
+    qmlRegisterType<PictureListModel>("localhost.PictureModel", 1, 0, "PictureListModel");
+    qmlRegisterType<CollectionManager>("localhost.PictureModel", 1, 0, "PictureCollection");
     qmlRegisterType<PictureProvider>("localhost.PictureModel", 1, 0, "PictureProvider");
 
     qmlRegisterType<DirectoryTreeModel>("localhost.DirectoryTreeModel", 1, 0, "DirectoryTreeModel");
-    qmlRegisterType<DirectoryValidator>("localhost.DirectoryTreeModel", 1, 0, "DirectoryValidator");
-
-    // QString appConfig = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppLocalDataLocation);
-    // QString appCache = QStandardPaths::writableLocation(QStandardPaths::StandardLocation::AppConfigLocation);
+    qmlRegisterType<DirectoryValidator>("localhost.Utility", 1, 0, "DirectoryValidator");
+    qmlRegisterType<StrictIntValidator>("localhost.Utility", 1, 0, "StrictIntValidator");
 
     QGuiApplication app(argc, argv);
     LoseFocusDetector::s_singletonInstance = LoseFocusDetector::construct(&app); 
     QQmlApplicationEngine engine;
-    qmlRegisterSingletonInstance("localhost.DirectoryTreeModel", 1, 0, "LoseFocusDetector", LoseFocusDetector::s_singletonInstance);
+    Settings settings(&engine);
+    qmlRegisterSingletonInstance("localhost.Utility", 1, 0, "LoseFocusDetector", LoseFocusDetector::s_singletonInstance);
+    qmlRegisterSingletonInstance("localhost.Utility", 1, 0, "Settings", &settings);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      [](QObject* loadedObj)
                      {
@@ -78,12 +135,7 @@ int main(int argc, char** argv)
                        }
                      });
     engine.load(QUrl("qrc:/mainqml/main.qml"));
-
-    Settings settings(&engine);
-    QList<QObject*> rootObjects = engine.rootObjects();
-    QObject* languageChangeList = rootObjects[0]->findChild<QObject*>("languageChangeList");
-    QObject::connect(languageChangeList, SIGNAL(languageChanged(QString)),
-                      &settings, SLOT(handleChangeLanguage(QString)));
+    settings.applyTranslation();
 
     return app.exec();
   } catch (std::exception& e) {

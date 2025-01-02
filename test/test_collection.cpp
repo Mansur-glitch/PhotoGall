@@ -1,12 +1,9 @@
-#include "picture_collection.hpp"
+#include "collection.hpp"
+
 #include <QTest>
-#include <QtGui/qguiapplication_platform.h>
+
 #include <cstdint>
 #include <memory>
-#include <qbitarray.h>
-#include <qdebug.h>
-#include <qnamespace.h>
-#include <qtestcase.h>
 
 
 struct CollectionElement

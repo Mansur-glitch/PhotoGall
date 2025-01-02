@@ -6,8 +6,25 @@ qt_add_qml_module(mainqml URI mainqml
         main.qml
         ItemSavedSize.qml
         DirectoryTree.qml
+        ToolsTabButton.qml
+        DatePicker.qml
     RESOURCES
         images/double_left.png
+        images/double_top.png
+        images/up.png
+        images/right_angle.png
+        images/category.png
+        images/files.png
+        images/info.png
+        images/image.png
+        images/down_to.png
+        images/inverse.png
+        images/gears.png
+        images/cross.png
+        images/tree.png
+        images/transparency.jpg
+        images/ru.png
+        images/uk.png
     STATIC
 )
 

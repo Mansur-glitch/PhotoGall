@@ -20,17 +20,25 @@ TreeView {
 
     property alias rootDirectory: treeModel.rootDirectory
     property string selectedDirectory: treeModel.getPath(itemSelection.currentIndex)
+    property var currentIndex: itemSelection.currentIndex
+    property bool hasSelection: {hasSelection = currentIndex.valid;}
+    onCurrentIndexChanged: {
+        hasSelection = currentIndex.valid;
+    }
+    property bool isFilesystemRoot: treeModel.isFilesystemRoot 
     function setUpperRoot(): void {
         treeModel.setUpperRoot();
+        hasSelection = false
     }
     function downRootToSelected(): void {
         if (itemSelection.currentIndex.valid) {
             treeModel.downRootTo(itemSelection.currentIndex);
+            hasSelection = false
         }
     }
 
     delegate: Item {
-        id: "dirDelegate"
+        id: "elementDelegate"
         implicitWidth: tree.width
         implicitHeight: label.implicitHeight * 1.5
 
@@ -66,24 +74,24 @@ TreeView {
         Rectangle {
             id: background
             anchors.fill: parent
-            color: "green"
-            opacity: current ? 0.8: 0.0
+            color: current? palette.accent: palette.base
         }
         MouseArea {
             anchors.fill: parent
             onClicked: {
                 var index = treeView.index(row, column)
                 selectionModel.setCurrentIndex(index, ItemSelectionModel.NoUpdate)
-                console.log(current + " " + treeModel.getPath(index))
             }
         }
 
-        Label {
+        Image {
             id: indicator
-            x: padding + (depth * indentation)
+            x: elementDelegate.padding + (depth * indentation)
             anchors.verticalCenter: parent.verticalCenter
             visible: isTreeNode && model.mayExpandFlag
-            text: "▶"
+            source: "images/right_angle.png"
+            width: label.height
+            height: label.height
 
             TapHandler {
                 onSingleTapped: {
@@ -101,9 +109,8 @@ TreeView {
 
         Label {
             id: label
-            x: padding + (isTreeNode ? (depth + 1) * indentation : 0)
+            x: elementDelegate.padding * 2 + height + depth * indentation
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - padding - x
             clip: true
             text: model.display
         }
