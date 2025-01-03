@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.24.0)
 
+set_source_files_properties(Constants.qml
+    PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(mainqml URI mainqml
     RESOURCE_PREFIX /
     QML_FILES
@@ -8,6 +10,10 @@ qt_add_qml_module(mainqml URI mainqml
         DirectoryTree.qml
         ToolsTabButton.qml
         DatePicker.qml
+        Constants.qml
+        CurrentPathField.qml
+        SettingsTab.qml
+        CollectionInstrumentsPanel.qml
     RESOURCES
         images/double_left.png
         images/double_top.png

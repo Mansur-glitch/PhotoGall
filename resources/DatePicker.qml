@@ -44,9 +44,6 @@ Row {
         property var items: [qsTr("Jan."), qsTr("Feb."), qsTr("Mar."), qsTr("Apr."),qsTr("May"), qsTr("June"),
                              qsTr("July"), qsTr("Aug."), qsTr("Sept."), qsTr("Oct."), qsTr("Nov."), qsTr("Dec.")]
 
-        // validator: RegularExpressionValidator {
-        //     regularExpression: new RegExp("(Small|Medium|Large)", "i")
-        // }
 
         textFromValue: function(value) {
             return items[value];
@@ -61,7 +58,7 @@ Row {
         }
         TextMetrics {
             id: "monthTextMetrics"
-            text: monthSpin.displayText
+            text: "WWWWW"
         }
         width: monthTextMetrics.width * 1.5 + up.implicitIndicatorWidth
 

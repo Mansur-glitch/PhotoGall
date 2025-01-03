@@ -1,19 +1,17 @@
 #include "picture_list_model.hpp"
-#include "picture_provider.hpp"
 
 #include <QImage>
 
 PictureListModel::PictureListModel(QObject* parent)
-: QAbstractListModel(parent), m_collection(nullptr),
-  m_collectionManager(nullptr),m_internalIndexList()
-{}
+    : QAbstractListModel(parent),
+      m_collection(nullptr),
+      m_collectionManager(nullptr),
+      m_internalIndexList() {}
 
-PictureListModel::~PictureListModel()
-{}
+PictureListModel::~PictureListModel() {}
 
-QVariant PictureListModel::data(const QModelIndex &index, int role) const
-{
-  if (! index.isValid()) {
+QVariant PictureListModel::data(const QModelIndex& index, int role) const {
+  if (!index.isValid()) {
     return {};
   }
   quintptr id = index.internalId();
@@ -21,16 +19,16 @@ QVariant PictureListModel::data(const QModelIndex &index, int role) const
   switch (role) {
     case Qt::DisplayRole: {
       if (isGroup) {
-        return m_collectionManager->getGroupTextInfo(m_collection->getGroupByOrder(id ^ groupBit));
+        return m_collectionManager->getGroupTextInfo(
+            m_collection->getGroupByOrder(id ^ groupBit));
       } else {
         return m_collection->getItem(id).name;
       }
     }
     case int(AdditionalDataRoles::groupFlag):
-    return isGroup;
+      return isGroup;
   }
-  if (isGroup)
-  {
+  if (isGroup) {
     return {};
   }
   const PictureInfo& pinfo = m_collection->getItem(id);
@@ -45,8 +43,7 @@ QVariant PictureListModel::data(const QModelIndex &index, int role) const
       return pinfo.datetime.toString("dd.MM.yyyy hh:mm:ss");
     case AdditionalDataRoles::size:
       return QString::number((double)pinfo.size / 1024 / 1024, 'g', 2) + " MB";
-    case AdditionalDataRoles::resolution:
-    {
+    case AdditionalDataRoles::resolution: {
       const QImage img(pinfo.filePath);
       return QString::number(img.width()) + "x" + QString::number(img.height());
     }
@@ -56,19 +53,21 @@ QVariant PictureListModel::data(const QModelIndex &index, int role) const
   return {};
 }
 
-Qt::ItemFlags PictureListModel::flags(const QModelIndex& index) const
-{
-  return index.isValid() ? Qt::ItemIsEnabled : Qt::NoItemFlags; 
+Qt::ItemFlags PictureListModel::flags(const QModelIndex& index) const {
+  return index.isValid() ? Qt::ItemIsEnabled : Qt::NoItemFlags;
 }
 
-QVariant PictureListModel::headerData(int section, Qt::Orientation orientation, int role) const
-{
-  return orientation == Qt::Horizontal && role == Qt::DisplayRole ?
-  "Heder provided" : QVariant{};
+QVariant PictureListModel::headerData(int section,
+                                      Qt::Orientation orientation,
+                                      int role) const {
+  return orientation == Qt::Horizontal && role == Qt::DisplayRole
+             ? "Heder provided"
+             : QVariant{};
 }
 
-QModelIndex PictureListModel::index(int row, int column, const  QModelIndex& parent) const
-{
+QModelIndex PictureListModel::index(int row,
+                                    int column,
+                                    const QModelIndex& parent) const {
   if (parent.isValid()) {
     return {};
   } else {
@@ -76,13 +75,11 @@ QModelIndex PictureListModel::index(int row, int column, const  QModelIndex& par
   }
 }
 
-QModelIndex PictureListModel::parent(const QModelIndex& index) const
-{
+QModelIndex PictureListModel::parent(const QModelIndex& index) const {
   return {};
 }
 
-int PictureListModel::rowCount(const QModelIndex& parent) const
-{
+int PictureListModel::rowCount(const QModelIndex& parent) const {
   // Have no root
   if (parent.isValid()) {
     return 0;
@@ -91,8 +88,7 @@ int PictureListModel::rowCount(const QModelIndex& parent) const
   }
 }
 
-QHash<int, QByteArray> PictureListModel::roleNames() const
-{
+QHash<int, QByteArray> PictureListModel::roleNames() const {
   QHash<int, QByteArray> roleNames = QAbstractItemModel::roleNames();
   roleNames[int(AdditionalDataRoles::groupFlag)] = "groupFlag";
   roleNames[int(AdditionalDataRoles::filePath)] = "filePath";
@@ -104,38 +100,39 @@ QHash<int, QByteArray> PictureListModel::roleNames() const
   return roleNames;
 }
 
-CollectionManager* PictureListModel::getCollectionManager() const
-{
+CollectionManager* PictureListModel::getCollectionManager() const {
   return m_collectionManager;
 }
 
-void PictureListModel::setCollectionManager(CollectionManager* collectionManager)
-{
+void PictureListModel::setCollectionManager(
+    CollectionManager* collectionManager) {
   if (m_collectionManager != collectionManager) {
     m_collectionManager = collectionManager;
     m_collection = collectionManager->getCollection();
     emit collectionManagerChanged();
-    QObject::connect(collectionManager, &CollectionManager::beforeCollectionDataChange,
-                      this, &PictureListModel::beforeCollectionDataChange);
-    QObject::connect(collectionManager, &CollectionManager::afterCollectionDataChanged,
-                       this, &PictureListModel::afterCollectionDataChanged);
+    QObject::connect(collectionManager,
+                     &CollectionManager::beforeCollectionDataChange, this,
+                     &PictureListModel::beforeCollectionDataChange);
+    QObject::connect(collectionManager,
+                     &CollectionManager::afterCollectionDataChanged, this,
+                     &PictureListModel::afterCollectionDataChanged);
   }
 }
 
-void PictureListModel::beforeCollectionDataChange()
-{
+void PictureListModel::beforeCollectionDataChange() {
   beginResetModel();
 }
 
-void PictureListModel::afterCollectionDataChanged()
-{
+void PictureListModel::afterCollectionDataChanged() {
   m_internalIndexList.clear();
   if (m_collection->filteredSize() != 0) {
-    for (quintptr groupNum = 0; groupNum < m_collection->countGroups(); ++groupNum) {
-      Collection<PictureInfo>::DisplayGroup g = m_collection->getGroupByOrder(groupNum);
-      m_internalIndexList.append(groupNum | groupBit); 
+    for (quintptr groupNum = 0; groupNum < m_collection->countGroups();
+         ++groupNum) {
+      Collection<PictureInfo>::DisplayGroup g =
+          m_collection->getGroupByOrder(groupNum);
+      m_internalIndexList.append(groupNum | groupBit);
       for (quintptr j = 0; j < g.size(); ++j) {
-        m_internalIndexList.append(g.begin() + j); 
+        m_internalIndexList.append(g.begin() + j);
       }
     }
   }

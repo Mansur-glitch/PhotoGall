@@ -1,78 +1,60 @@
 #include "collection.hpp"
 
-//#include <boost/algorithm/apply_permutation.hpp>
-//#include <boost/compute/algorithm/detail/binary_find.hpp>
-
 Group::Group(uint32_t id, uint32_t sampleIndex, uint32_t begin, uint32_t size)
-: m_id(id), m_sample(sampleIndex), m_begin(begin), m_size(size)
-{}
+    : m_id(id), m_sample(sampleIndex), m_begin(begin), m_size(size) {}
 
-uint32_t Group::begin() const noexcept
-{
+uint32_t Group::begin() const noexcept {
   return m_begin;
 }
 
-uint32_t Group::end() const noexcept
-{
-  return m_begin + m_size;  
+uint32_t Group::end() const noexcept {
+  return m_begin + m_size;
 }
 
-uint32_t Group::size() const noexcept
-{
-  return m_size;  
+uint32_t Group::size() const noexcept {
+  return m_size;
 }
 
-uint32_t Group::getSample() const noexcept
-{
+uint32_t Group::getSample() const noexcept {
   return m_sample;
 }
 
-uint32_t Group::id() const noexcept
-{
-  return m_id;  
+uint32_t Group::id() const noexcept {
+  return m_id;
 }
 
-void Group::setBegin(uint32_t position) noexcept
-{
-  m_begin = position;  
+void Group::setBegin(uint32_t position) noexcept {
+  m_begin = position;
 }
 
-void Group::setSize(uint32_t size) noexcept
-{
- m_size = size;
+void Group::setSize(uint32_t size) noexcept {
+  m_size = size;
 }
 
 GroupLayoutBase::GroupLayoutBase(QList<uint32_t>& indexes)
-:m_data(indexes), m_groups(), m_orderedIds()
-{}
+    : m_data(indexes), m_groups(), m_orderedIds() {}
 
-const Group& GroupLayoutBase::getById(uint32_t id) const
-{
-  return m_groups[id];  
+const Group& GroupLayoutBase::getById(uint32_t id) const {
+  return m_groups[id];
 }
 
-const Group& GroupLayoutBase::getByOrder(uint32_t num) const
-{
+const Group& GroupLayoutBase::getByOrder(uint32_t num) const {
   return m_groups[m_orderedIds[num]];
 }
 
-uint32_t GroupLayoutBase::getIdAt(uint32_t num) const
-{
+uint32_t GroupLayoutBase::getIdAt(uint32_t num) const {
   return m_orderedIds[num];
 }
 
-uint32_t GroupLayoutBase::countGroups() const
-{
+uint32_t GroupLayoutBase::countGroups() const {
   return m_groups.size();
 }
 
-uint32_t GroupLayoutBase::size() const
-{
+uint32_t GroupLayoutBase::size() const {
   return m_data.size();
 }
 
-void GroupLayoutBase::clear()
-{
+void GroupLayoutBase::clear() {
   m_groups.clear();
   m_orderedIds.clear();
 }
@@ -80,45 +62,39 @@ void GroupLayoutBase::clear()
 using Sublayout = ArrangedGroupLayout::Sublayout;
 
 Sublayout::Sublayout(ArrangedGroupLayout* layout)
-: m_layout(layout), m_orderedIds(),
-  m_begin(0), m_size(0), m_nGroups(0)
-{}
+    : m_layout(layout), m_orderedIds(), m_begin(0), m_size(0), m_nGroups(0) {}
 
-Group& Sublayout::getByOrder(uint32_t num)
-{
+Group& Sublayout::getByOrder(uint32_t num) {
   return m_layout->m_groups[m_orderedIds[num]];
 }
 
-uint32_t Sublayout::getIdAt(uint32_t num) const
-{
-  return m_orderedIds[num];  
+uint32_t Sublayout::getIdAt(uint32_t num) const {
+  return m_orderedIds[num];
 }
 
-uint32_t Sublayout::countGroups() const
-{
-  return m_nGroups;  
+uint32_t Sublayout::countGroups() const {
+  return m_nGroups;
 }
 
-std::optional<uint32_t> Sublayout::getIdBySample(uint32_t sample,
-                                                 const Predicate2<uint32_t>& sameGroupPred)
-{
+std::optional<uint32_t> Sublayout::getIdBySample(
+    uint32_t sample,
+    const Predicate2<uint32_t>& sameGroupPred) {
   for (uint32_t groupNum = 0; groupNum < m_nGroups; ++groupNum) {
     Group& g = getByOrder(groupNum);
     if (sameGroupPred(sample, g.getSample())) {
       return g.id();
       break;
     }
-  } 
+  }
   return {};
 }
 
-QList<uint32_t> Sublayout::arrange_getDataMarkup()
-{
+QList<uint32_t> Sublayout::arrange_getDataMarkup() {
   QList<uint32_t> groupMarks(m_size);
   // Mark previously ordered data
   for (uint32_t groupNum = 0; groupNum < m_nGroups; ++groupNum) {
     const Group& g = getByOrder(groupNum);
-    const uint32_t begin = g.begin() - m_begin; 
+    const uint32_t begin = g.begin() - m_begin;
     const uint32_t end = g.end() - m_begin;
     for (uint32_t i = begin; i < end; ++i) {
       groupMarks[i] = g.id();
@@ -127,8 +103,7 @@ QList<uint32_t> Sublayout::arrange_getDataMarkup()
   return groupMarks;
 }
 
-Group& Sublayout::arrange_append(uint32_t groupSample)
-{
+Group& Sublayout::arrange_append(uint32_t groupSample) {
   uint32_t newGroupId = m_layout->m_groups.size();
   m_layout->m_groups.append(Group{newGroupId, groupSample, 0, 1});
   m_orderedIds.append(newGroupId);
@@ -138,21 +113,19 @@ Group& Sublayout::arrange_append(uint32_t groupSample)
   return m_layout->m_groups[newGroupId];
 }
 
-void Sublayout::arrange_sortGroups(const Predicate2<uint32_t>& groupLessPred)
-{
-  std::ranges::sort(m_orderedIds, groupLessPred,
-                     [this](uint32_t i){return m_layout->m_groups[i].getSample();});
+void Sublayout::arrange_sortGroups(const Predicate2<uint32_t>& groupLessPred) {
+  std::ranges::sort(m_orderedIds, groupLessPred, [this](uint32_t i) {
+    return m_layout->m_groups[i].getSample();
+  });
 }
 
-void Sublayout::arrange_storeLocalGroupOrder()
-{
+void Sublayout::arrange_storeLocalGroupOrder() {
   for (uint32_t i = 0; i < m_orderedIds.size(); ++i) {
     m_layout->m_idOrderPosition[m_orderedIds[i]] = i;
   }
 }
 
-void Sublayout::arrange_writeData(QList<uint32_t> dataMarkup)
-{
+void Sublayout::arrange_writeData(QList<uint32_t> dataMarkup) {
   QList<uint32_t> inGroupPosition(m_nGroups);
   inGroupPosition.fill(0);
   QList<uint32_t> buf(m_size);
@@ -160,17 +133,18 @@ void Sublayout::arrange_writeData(QList<uint32_t> dataMarkup)
     const uint32_t groupId = dataMarkup[i];
     // Main layout's field temporarly used to store local group order
     const uint32_t groupOrderNum = m_layout->m_idOrderPosition[groupId];
-    const uint32_t elementPos = m_layout->m_groups[groupId].begin() + inGroupPosition[groupOrderNum];
-    buf[elementPos - m_begin] = m_layout->m_data[i + m_begin]; 
+    const uint32_t elementPos =
+        m_layout->m_groups[groupId].begin() + inGroupPosition[groupOrderNum];
+    buf[elementPos - m_begin] = m_layout->m_data[i + m_begin];
     inGroupPosition[groupOrderNum] += 1;
   }
   std::copy(buf.begin(), buf.end(), m_layout->m_data.begin() + m_begin);
 }
 
-void Sublayout::arrange_distributeNewData(QList<uint32_t>& currentMarkup,
-                                          uint32_t expandedSize,
-                                        const Predicate2<uint32_t>& sameGroupPred)
-{
+void Sublayout::arrange_distributeNewData(
+    QList<uint32_t>& currentMarkup,
+    uint32_t expandedSize,
+    const Predicate2<uint32_t>& sameGroupPred) {
   const uint32_t newDataBegin = currentMarkup.size();
   const uint32_t newDataEnd = newDataBegin + expandedSize;
   currentMarkup.resize(newDataEnd);
@@ -179,23 +153,21 @@ void Sublayout::arrange_distributeNewData(QList<uint32_t>& currentMarkup,
     const uint32_t element = m_layout->m_data[globalIndex];
     std::optional<uint32_t> optGroupId = getIdBySample(element, sameGroupPred);
     if (optGroupId) {
-      Group& g = m_layout->m_groups[optGroupId.value()]; 
+      Group& g = m_layout->m_groups[optGroupId.value()];
       g.setSize(g.size() + 1);
       currentMarkup[i] = optGroupId.value();
     } else {
       currentMarkup[i] = arrange_append(element).id();
     }
-  } 
+  }
 }
 
-void Sublayout::arrange_setSublayoutPosition(uint32_t begin, uint32_t size)
-{
+void Sublayout::arrange_setSublayoutPosition(uint32_t begin, uint32_t size) {
   m_begin = begin;
   m_size = size;
 }
 
-void Sublayout::arrange_setGroupBeginnings()
-{
+void Sublayout::arrange_setGroupBeginnings() {
   uint32_t i = 0;
   for (uint32_t groupNum = 0; groupNum < m_nGroups; ++groupNum) {
     Group& g = getByOrder(groupNum);
@@ -204,16 +176,16 @@ void Sublayout::arrange_setGroupBeginnings()
   }
 }
 
-void Sublayout::arrange(uint32_t begin, uint32_t size,
-               const Predicate2<uint32_t>& sameGroupPred,
-               const Predicate2<uint32_t>& groupLessPred)
-{
+void Sublayout::arrange(uint32_t begin,
+                        uint32_t size,
+                        const Predicate2<uint32_t>& sameGroupPred,
+                        const Predicate2<uint32_t>& groupLessPred) {
   const uint32_t expansionSize = size - m_size;
   if (expansionSize > 0) {
-    QList<uint32_t> dataMarkup = arrange_getDataMarkup();  
+    QList<uint32_t> dataMarkup = arrange_getDataMarkup();
     arrange_setSublayoutPosition(begin, size);
     const uint32_t nGroupsBefore = m_nGroups;
-    arrange_distributeNewData(dataMarkup, expansionSize, sameGroupPred);  
+    arrange_distributeNewData(dataMarkup, expansionSize, sameGroupPred);
     if (m_nGroups > nGroupsBefore) {
       arrange_sortGroups(groupLessPred);
     }
@@ -227,25 +199,21 @@ void Sublayout::arrange(uint32_t begin, uint32_t size,
 }
 
 ArrangedGroupLayout::ArrangedGroupLayout(QList<uint32_t>& indexes)
-: GroupLayoutBase(indexes), m_idOrderPosition(), m_sublayouts()
-{}
+    : GroupLayoutBase(indexes), m_idOrderPosition(), m_sublayouts() {}
 
-uint32_t ArrangedGroupLayout::getOrderById(uint32_t id) const
-{
+uint32_t ArrangedGroupLayout::getOrderById(uint32_t id) const {
   return m_idOrderPosition[id];
 }
 
-void ArrangedGroupLayout::clear()
-{
+void ArrangedGroupLayout::clear() {
   GroupLayoutBase::clear();
   m_idOrderPosition.clear();
   m_sublayouts.clear();
 }
 
 void ArrangedGroupLayout::arrange(const GroupLayoutBase& inputLayout,
-                           const Predicate2<uint32_t>& sameGroupPred,
-                           const Predicate2<uint32_t>& groupLessPred)
-{
+                                  const Predicate2<uint32_t>& sameGroupPred,
+                                  const Predicate2<uint32_t>& groupLessPred) {
   const uint32_t nSublayoutsBefore = m_sublayouts.size();
   const uint32_t nSublayoutsAfter = inputLayout.countGroups();
   for (uint32_t i = 0; i < nSublayoutsBefore; ++i) {
@@ -255,7 +223,8 @@ void ArrangedGroupLayout::arrange(const GroupLayoutBase& inputLayout,
   for (uint32_t i = nSublayoutsBefore; i < nSublayoutsAfter; ++i) {
     const Group& g = inputLayout.getById(i);
     m_sublayouts.emplaceBack<ArrangedGroupLayout*>(this);
-    m_sublayouts.last().arrange(g.begin(), g.size(), sameGroupPred, groupLessPred);
+    m_sublayouts.last().arrange(g.begin(), g.size(), sameGroupPred,
+                                groupLessPred);
   }
 
   m_orderedIds.resize(m_groups.size());
@@ -266,7 +235,7 @@ void ArrangedGroupLayout::arrange(const GroupLayoutBase& inputLayout,
     for (uint32_t m = 0; m < m_sublayouts[i].countGroups(); ++m) {
       const uint32_t id = m_sublayouts[i].getIdAt(m);
       const uint32_t position = orderOffset + m;
-      m_orderedIds[position] = id; 
+      m_orderedIds[position] = id;
       m_idOrderPosition[id] = position;
     }
     orderOffset += m_sublayouts[i].countGroups();
@@ -274,43 +243,44 @@ void ArrangedGroupLayout::arrange(const GroupLayoutBase& inputLayout,
 }
 
 void ArrangedGroupLayout::arrange(const Predicate2<uint32_t>& sameGroupPred,
-                           const Predicate2<uint32_t>& groupLessPred)
-{
+                                  const Predicate2<uint32_t>& groupLessPred) {
   if (m_sublayouts.empty()) {
     m_sublayouts.emplaceBack<ArrangedGroupLayout*>(this);
-  } 
+  }
   m_sublayouts[0].arrange(0, m_data.size(), sameGroupPred, groupLessPred);
   m_orderedIds.resize(m_groups.size());
   m_idOrderPosition.resize(m_groups.size());
   for (uint32_t n = 0; n < m_groups.size(); ++n) {
     const uint32_t id = m_sublayouts[0].getIdAt(n);
     const uint32_t position = n;
-    m_orderedIds[position] = id; 
+    m_orderedIds[position] = id;
     m_idOrderPosition[id] = position;
   }
 }
 
 FilteredGroupLayout::FilteredGroupLayout(QList<uint32_t>& indexes)
-: GroupLayoutBase(indexes), m_filtrationInfo()
-{}
+    : GroupLayoutBase(indexes), m_filtrationInfo() {}
 
-uint32_t FilteredGroupLayout::filterRange(uint32_t begin, uint32_t end,
-                                          const GroupFiltrationInfo& finfo, const Predicate1<uint32_t>& filter)
-{
-  const QList<uint32_t>::iterator expBegIt = m_data.begin() + begin + finfo.m_unfilteredSize;
+uint32_t FilteredGroupLayout::filterRange(uint32_t begin,
+                                          uint32_t end,
+                                          const GroupFiltrationInfo& finfo,
+                                          const Predicate1<uint32_t>& filter) {
+  const QList<uint32_t>::iterator expBegIt =
+      m_data.begin() + begin + finfo.m_unfilteredSize;
   const QList<uint32_t>::iterator endIt = m_data.begin() + end;
-  QList<uint32_t>::iterator partIt = std::stable_partition(expBegIt, endIt, filter);
+  QList<uint32_t>::iterator partIt =
+      std::stable_partition(expBegIt, endIt, filter);
   const uint32_t nItemsAdded = partIt - expBegIt;
 
   if (nItemsAdded > 0) {
-    const QList<uint32_t>::iterator inappBegIt = m_data.begin() + begin + finfo.m_filteredSize;
-    std::rotate(inappBegIt ,expBegIt, partIt);
+    const QList<uint32_t>::iterator inappBegIt =
+        m_data.begin() + begin + finfo.m_filteredSize;
+    std::rotate(inappBegIt, expBegIt, partIt);
   }
   return nItemsAdded;
 }
 
-Group& FilteredGroupLayout::appendGroup(uint32_t begin, uint32_t size)
-{
+Group& FilteredGroupLayout::appendGroup(uint32_t begin, uint32_t size) {
   const uint32_t id = m_groups.size();
   const uint32_t sample = m_data[begin];
   m_groups.append(Group(id, sample, begin, size));
@@ -318,18 +288,17 @@ Group& FilteredGroupLayout::appendGroup(uint32_t begin, uint32_t size)
   return m_groups.last();
 }
 
-void FilteredGroupLayout::filter(const Predicate1<uint32_t>& filter)
-{
+void FilteredGroupLayout::filter(const Predicate1<uint32_t>& filter) {
   if (m_filtrationInfo.empty()) {
     m_filtrationInfo.append({0, 0, 0});
   }
-  GroupFiltrationInfo& finfo =  m_filtrationInfo[0];
+  GroupFiltrationInfo& finfo = m_filtrationInfo[0];
   const uint32_t nAdded = filterRange(0, m_data.size(), finfo, filter);
   finfo.m_unfilteredSize = m_data.size();
   finfo.m_filteredSize += nAdded;
 
   if (nAdded > 0) {
-    if (! m_groups.empty()) {
+    if (!m_groups.empty()) {
       m_groups[finfo.m_filteredGroupId].setSize(finfo.m_filteredSize);
     } else {
       finfo.m_filteredGroupId = appendGroup(0, finfo.m_filteredSize).id();
@@ -338,12 +307,12 @@ void FilteredGroupLayout::filter(const Predicate1<uint32_t>& filter)
 }
 
 void FilteredGroupLayout::filter(const GroupLayoutBase& inputLayout,
-                                  const Predicate1<uint32_t>& filter)
-{
+                                 const Predicate1<uint32_t>& filter) {
   const uint32_t nOldGroups = m_filtrationInfo.size();
   m_orderedIds.clear();
   m_filtrationInfo.resize(inputLayout.countGroups());
-  for (uint32_t groupNum = 0; groupNum < inputLayout.countGroups(); ++groupNum) {
+  for (uint32_t groupNum = 0; groupNum < inputLayout.countGroups();
+       ++groupNum) {
     const Group& g = inputLayout.getByOrder(groupNum);
     GroupFiltrationInfo& finfo = m_filtrationInfo[g.id()];
     const bool hasFilteredGroup = finfo.m_filteredSize > 0;
@@ -362,55 +331,49 @@ void FilteredGroupLayout::filter(const GroupLayoutBase& inputLayout,
       if (hasFilteredGroup) {
         m_groups[finfo.m_filteredGroupId].setSize(finfo.m_filteredSize);
       } else {
-        finfo.m_filteredGroupId = appendGroup(g.begin(), finfo.m_filteredSize).id();
+        finfo.m_filteredGroupId =
+            appendGroup(g.begin(), finfo.m_filteredSize).id();
       }
     }
-  }    
+  }
 }
 
-void FilteredGroupLayout::clear()
-{
-  GroupLayoutBase::clear();  
+void FilteredGroupLayout::clear() {
+  GroupLayoutBase::clear();
   m_filtrationInfo.clear();
 }
 
-CollectionView::CollectionView(QList<uint32_t>& indexes, const GroupLayoutBase* inputLayout)
-: m_indexes(indexes), m_inputLayout(inputLayout)
-{}
+CollectionView::CollectionView(QList<uint32_t>& indexes,
+                               const GroupLayoutBase* inputLayout)
+    : m_indexes(indexes), m_inputLayout(inputLayout) {}
 
-CollectionView::~CollectionView()
-{}
+CollectionView::~CollectionView() {}
 
-void CollectionView::setInput(const GroupLayoutBase* input)
-{
+void CollectionView::setInput(const GroupLayoutBase* input) {
   m_inputLayout = input;
 }
 
-const GroupLayoutBase* CollectionView::outputLayout() const
-{
+const GroupLayoutBase* CollectionView::outputLayout() const {
   return m_inputLayout;
 }
 
 NullView::NullView(QList<uint32_t>& indexes, const GroupLayoutBase* inputLayout)
-: CollectionView(indexes, inputLayout)
-{}
+    : CollectionView(indexes, inputLayout) {}
 
-void NullView::update()
-{} 
+void NullView::update() {}
 
-void NullView::reset() 
-{}
+void NullView::reset() {}
 
 GroupingView::GroupingView(Predicate2<uint32_t> sameGroupPred,
-             Predicate2<uint32_t> lessGroupPred,
-             QList<uint32_t>& indexes,
-             const GroupLayoutBase* inputLayout)
-: CollectionView(indexes, inputLayout), m_outputLayout(indexes),
-  m_sameGroupPred(std::move(sameGroupPred)), m_lessGroupPred(std::move(lessGroupPred))
-  {}
+                           Predicate2<uint32_t> lessGroupPred,
+                           QList<uint32_t>& indexes,
+                           const GroupLayoutBase* inputLayout)
+    : CollectionView(indexes, inputLayout),
+      m_outputLayout(indexes),
+      m_sameGroupPred(std::move(sameGroupPred)),
+      m_lessGroupPred(std::move(lessGroupPred)) {}
 
-void GroupingView::update()
-{
+void GroupingView::update() {
   if (m_inputLayout) {
     m_outputLayout.arrange(*m_inputLayout, m_sameGroupPred, m_lessGroupPred);
   } else {
@@ -418,23 +381,23 @@ void GroupingView::update()
   }
 }
 
-void GroupingView::reset()
-{
+void GroupingView::reset() {
   m_outputLayout.clear();
 }
 
-const ArrangedGroupLayout* GroupingView::outputLayout() const
-{
+const ArrangedGroupLayout* GroupingView::outputLayout() const {
   return &m_outputLayout;
 }
 
 SortingView::SortingView(Predicate2<uint32_t> elementLessPred,
-             QList<uint32_t>& indexes,
-             const GroupLayoutBase* inputLayout)
-: CollectionView(indexes, inputLayout), m_byIndexLessCompare(std::move(elementLessPred))
-{}
-void SortingView::sortPartiallySorted(uint32_t begin, uint32_t end, uint32_t unsortedBegin)
-{
+                         QList<uint32_t>& indexes,
+                         const GroupLayoutBase* inputLayout)
+    : CollectionView(indexes, inputLayout),
+      m_byIndexLessCompare(std::move(elementLessPred)) {}
+
+void SortingView::sortPartiallySorted(uint32_t begin,
+                                      uint32_t end,
+                                      uint32_t unsortedBegin) {
   QList<uint32_t>::iterator begIt = m_indexes.begin() + begin;
   QList<uint32_t>::iterator midIt = m_indexes.begin() + unsortedBegin;
   QList<uint32_t>::iterator endIt = m_indexes.begin() + end;
@@ -442,14 +405,13 @@ void SortingView::sortPartiallySorted(uint32_t begin, uint32_t end, uint32_t uns
   std::inplace_merge(begIt, midIt, endIt, m_byIndexLessCompare);
 }
 
-void SortingView::update()
-{
+void SortingView::update() {
   if (m_inputLayout == nullptr) {
     if (m_groupSizes.empty()) {
       m_groupSizes.append(0);
     }
     if (m_groupSizes[0] == 0) {
-      std::ranges::sort(m_indexes, m_byIndexLessCompare);  
+      std::ranges::sort(m_indexes, m_byIndexLessCompare);
     } else {
       sortPartiallySorted(0, m_indexes.size(), m_groupSizes[0]);
     }
@@ -458,60 +420,60 @@ void SortingView::update()
   }
 
   m_groupSizes.resize(m_inputLayout->countGroups(), 0);
-  for (uint32_t groupId = 0; groupId < m_inputLayout->countGroups(); ++groupId) {
+  for (uint32_t groupId = 0; groupId < m_inputLayout->countGroups();
+       ++groupId) {
     const Group& g = m_inputLayout->getById(groupId);
     if (g.size() == m_groupSizes[groupId]) {
       continue;
     }
     if (m_groupSizes[groupId] == 0) {
-      std::ranges::sort(m_indexes.begin() + g.begin(), m_indexes.begin() + g.end(), m_byIndexLessCompare);  
+      std::ranges::sort(m_indexes.begin() + g.begin(),
+                        m_indexes.begin() + g.end(), m_byIndexLessCompare);
     } else {
-      sortPartiallySorted(g.begin(), g.end(), g.begin() + m_groupSizes[groupId]);
+      sortPartiallySorted(g.begin(), g.end(),
+                          g.begin() + m_groupSizes[groupId]);
     }
     m_groupSizes[groupId] = g.size();
   }
 }
 
-void SortingView::reset()
-{
+void SortingView::reset() {
   m_groupSizes.clear();
 }
 
 FilteringView::FilteringView(Predicate1<uint32_t> filterPred,
-                QList<uint32_t>& indexes,
-               const GroupLayoutBase* inputLayout)
-: CollectionView(indexes, inputLayout), m_outputLayout(indexes), m_filterByIndex(filterPred)
-{}
+                             QList<uint32_t>& indexes,
+                             const GroupLayoutBase* inputLayout)
+    : CollectionView(indexes, inputLayout),
+      m_outputLayout(indexes),
+      m_filterByIndex(filterPred) {}
 
-FilteringView::FilteringView(QList<uint32_t>& indexes, const GroupLayoutBase* inputLayout)
-: CollectionView(indexes, inputLayout), m_filterByIndex(), m_outputLayout(indexes)
-{}
+FilteringView::FilteringView(QList<uint32_t>& indexes,
+                             const GroupLayoutBase* inputLayout)
+    : CollectionView(indexes, inputLayout),
+      m_filterByIndex(),
+      m_outputLayout(indexes) {}
 
-void FilteringView::update()
-{
+void FilteringView::update() {
   if (m_inputLayout) {
     m_outputLayout.filter(*m_inputLayout, m_filterByIndex);
-  } else  { 
+  } else {
     m_outputLayout.filter(m_filterByIndex);
-  } 
+  }
 }
 
-void FilteringView::reset()
-{
+void FilteringView::reset() {
   m_outputLayout.clear();
 }
 
-const FilteredGroupLayout* FilteringView::outputLayout() const
-{
+const FilteredGroupLayout* FilteringView::outputLayout() const {
   return &m_outputLayout;
 }
 
-RemovingView::RemovingView(QList<uint32_t>& indexes, const QBitArray& deletedMask,
-               const GroupLayoutBase* inputLayout)
-: FilteringView(indexes, inputLayout) 
-{
-  m_filterByIndex = Predicate1<uint32_t>{[&deletedMask](const uint32_t& index)
-  {
-    return deletedMask[index];
-  }};
+RemovingView::RemovingView(QList<uint32_t>& indexes,
+                           const QBitArray& deletedMask,
+                           const GroupLayoutBase* inputLayout)
+    : FilteringView(indexes, inputLayout) {
+  m_filterByIndex = Predicate1<uint32_t>{
+      [&deletedMask](const uint32_t& index) { return deletedMask[index]; }};
 }

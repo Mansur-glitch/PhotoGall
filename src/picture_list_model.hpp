@@ -1,16 +1,15 @@
 #pragma once
-#include "picture_provider.hpp"
+#include "collection_manager.hpp"
 
 #include <QAbstractListModel>
-class PictureListModel: public QAbstractListModel
-{
+
+class PictureListModel : public QAbstractListModel {
   Q_OBJECT
 
-public:
+ public:
   Q_DISABLE_COPY_MOVE(PictureListModel)
 
-  enum class AdditionalDataRoles: int
-  {
+  enum class AdditionalDataRoles : int {
     groupFlag = Qt::UserRole + 1,
     filePath,
     fileName,
@@ -23,28 +22,34 @@ public:
   PictureListModel(QObject* parent = nullptr);
   ~PictureListModel() override;
 
-  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+  QVariant data(const QModelIndex& index,
+                int role = Qt::DisplayRole) const override;
   Qt::ItemFlags flags(const QModelIndex& index) const override;
-  QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-  QModelIndex index(int row, int column, const  QModelIndex& parent = {}) const override;
-  QModelIndex parent(const  QModelIndex& index) const override;
+  QVariant headerData(int section,
+                      Qt::Orientation orientation,
+                      int role = Qt::DisplayRole) const override;
+  QModelIndex index(int row,
+                    int column,
+                    const QModelIndex& parent = {}) const override;
+  QModelIndex parent(const QModelIndex& index) const override;
   int rowCount(const QModelIndex& parent = {}) const override;
   QHash<int, QByteArray> roleNames() const override;
 
   CollectionManager* getCollectionManager() const;
   void setCollectionManager(CollectionManager* collectionManager);
 
-  Q_PROPERTY(CollectionManager* collection READ getCollectionManager
-              WRITE setCollectionManager NOTIFY collectionManagerChanged REQUIRED);
-signals:
+  Q_PROPERTY(CollectionManager* collection READ getCollectionManager WRITE
+                 setCollectionManager NOTIFY collectionManagerChanged REQUIRED);
+ signals:
   void collectionManagerChanged();
-private slots:
+ private slots:
   void beforeCollectionDataChange();
   void afterCollectionDataChanged();
-private:
-  static constexpr quintptr groupBit = quintptr(1) << (8 * sizeof(quintptr) - 1);
+
+ private:
+  static constexpr quintptr groupBit = quintptr(1)
+                                       << (8 * sizeof(quintptr) - 1);
   static constexpr int groupFlagDataRole = Qt::UserRole + 1;
-  // bool isIndexValid(const QModelIndex& index) const;
   CollectionManager* m_collectionManager;
   Collection<PictureInfo>* m_collection;
   QList<quintptr> m_internalIndexList;

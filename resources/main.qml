@@ -10,18 +10,6 @@ Window {
     id: wnd
     visible: true
     title: qsTr("PhotoGall")
-    Text {
-        id: "emptyText"
-    }
-    readonly property font defaultFont: emptyText.font 
-    readonly property color defaultDarkColor: palette.dark
-    palette.disabled.button: defaultDarkColor
-    readonly property color defaultMidDarkColor: palette.mid
-    readonly property color defaultMidLightColor: palette.midlight
-    readonly property color defaultBackgroundColor: palette.base
-    readonly property color defaultAccentColor: palette.accent
-    readonly property real defaultBorderWidth: 2
-    readonly property color defaultBorderColor: defaultAccentColor 
 
     property real aspectRatio: width / height
     PictureProvider {
@@ -39,11 +27,7 @@ Window {
         visible: false
         Rectangle {
             id: "toolPanel"
-            anchors.centerIn: parent
-            anchors.right: parent.right
-            width: parent.width
-            height: parent.height
-
+            anchors.fill: parent
             TabBar {
                 id: "toolTabs"
                 anchors.top: parent.top
@@ -95,8 +79,8 @@ Window {
                             Image {
                                 source: "images/up.png"
                                 anchors.centerIn: parent
-                                width: parent.height
                                 height: parent.height
+                                width: height
                             }
                             onClicked: {
                                 directoryTree.setUpperRoot();
@@ -109,8 +93,8 @@ Window {
                             Image {
                                 source: "images/down_to.png"
                                 anchors.centerIn: parent
-                                width: parent.height
                                 height: parent.height
+                                width: height
                             }
                             onClicked: {
                                 directoryTree.downRootToSelected();
@@ -118,46 +102,22 @@ Window {
                         }
                     }
 
-                    Rectangle {
-                        id: "currentPathFieldBorder"
+                    CurrentPathField {
+                        id: "currentPathField"
                         anchors.top: treeControlButtons.bottom
                         width: parent.width
-                        height: childrenRect.height + border.width * 2
-                        color: wnd.defaultMidLightColor
-                        border.color: wnd.defaultBorderColor
-                        border.width: wnd.defaultBorderWidth
-
-                        TextInput {
-                            id: "currentPathField"
-                            width: parent.width - parent.border.width * 2
-                            y: parent.border.width
-                            x: parent.border.width
-                            property string acceptedText: directoryTree.rootDirectory 
-                            text: acceptedText
-                            Binding on text {
-                                        when: !currentPathField.activeFocus
-                                        value: currentPathField.acceptedText
-                                        restoreMode: Binding.RestoreNone
-                                    }
-                            onAccepted: {
-                                directoryTree.rootDirectory = text
-                            }
-                            Keys.onEscapePressed: currentPathField.focus = false
-                            validator: DirectoryValidator {}
-                            color: acceptableInput ? "green": "red"
-                            font.pixelSize: defaultFont.pixelSize * 1.5
-                            selectByMouse: true
-                            onFocusChanged: {
-                                if (activeFocus) {
-                                    LoseFocusDetector.focusedObject = currentPathField
-                                }
+                        acceptedText: directoryTree.rootDirectory
+                        onAcceptedTextChanged: {
+                            // Avoid loop binding
+                            if (directoryTree.rootDirectory != acceptedText) {
+                                directoryTree.rootDirectory = acceptedText
                             }
                         }
                     }
 
                     DirectoryTree {
                         id: "directoryTree"
-                        anchors.top: currentPathFieldBorder.bottom
+                        anchors.top: currentPathField.bottom
                         anchors.bottom: parent.bottom
                         width: parent.width
                     }
@@ -170,8 +130,8 @@ Window {
                         id: "imageInfoBox"
                         width: childrenRect.width + border.width * 2
                         height: childrenRect.height + border.width * 2
-                        border.color: wnd.defaultBorderColor
-                        border.width: wnd.defaultBorderWidth
+                        border.color: Constants.defaultBorderColor
+                        border.width: Constants.defaultBorderWidth
                         Column {
                             x: parent.border.width
                             y: parent.border.width
@@ -240,21 +200,27 @@ Window {
                         let heightNextTo = height
 
                         let relSpaceUnder = widthUnder
-                        if (heightUnder * previewImage.aspectRatio < widthUnder) {
-                            relSpaceUnder = heightUnder * previewImage.aspectRatio
+                        if (heightUnder * previewImage.aspectRatio
+                                                     < widthUnder) {
+                            relSpaceUnder = heightUnder 
+                                            * previewImage.aspectRatio
                         }
                         let relSpaceNextTo = widthNextTo
-                        if (heightNextTo * previewImage.aspectRatio < widthNextTo) {
-                            relSpaceNextTo = heightNextTo * previewImage.aspectRatio
+                        if (heightNextTo * previewImage.aspectRatio
+                                                         < widthNextTo) {
+                            relSpaceNextTo = heightNextTo
+                                             * previewImage.aspectRatio
                         }
                         return relSpaceUnder > relSpaceNextTo
                     }
                     Rectangle {
                         id: "previewBox"
-                        width: parent.placePreviewImageUnder? parent.width: parent.spaceNextToInfo 
-                        height: parent.placePreviewImageUnder? parent.spaceUnderInfo: parent.height
-                        border.color: wnd.defaultBorderColor
-                        border.width: wnd.defaultBorderWidth
+                        width: parent.placePreviewImageUnder?
+                                     parent.width: parent.spaceNextToInfo 
+                        height: parent.placePreviewImageUnder?
+                                     parent.spaceUnderInfo: parent.height
+                        border.color: Constants.defaultBorderColor
+                        border.width: Constants.defaultBorderWidth
                         Image {
                             width: parent.width - parent.border.width * 2 
                             height: parent.height - parent.border.width * 2 
@@ -271,129 +237,21 @@ Window {
                                 height: parent.height
                                 fillMode: Image.PreserveAspectFit
                                 visible: false
-                                property real aspectRatio: sourceSize.height != 0 ? sourceSize.width / sourceSize.height: 1
+                                property real aspectRatio: 
+                                                sourceSize.height != 0 ?
+                                                sourceSize.width 
+                                                / sourceSize.height: 1
                             }
                         }
                     }
                 }
 
-                Flow {
+                SettingsTab {
                     id: "settingsTab"
-                    spacing: 10
-                    Rectangle {
-                        width: childrenRect.width + 20
-                        height: childrenRect.height + 20
-                        color: "transparent"
-                        border.color: wnd.defaultBorderColor
-                        border.width: wnd.defaultBorderWidth
-
-                        ColumnLayout {
-                            x: 10
-                            y: 10
-                            Label {
-                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                text: qsTr("Tool panel position")
-                            }
-                            RowLayout {
-                                Label {
-                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                    text: mainSplit.orientation == Qt.Horizontal ? qsTr("Left") : qsTr("Top")
-                                }
-                                Switch {
-                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                    id: "splitLayoutSwitch"
-                                    checked: ! Settings.getToolPanelPosition()
-                                    onToggled: {
-                                        mainSplit.changeSplitLayoutOrder()
-                                        Settings.setToolPanelPosition(mainSplit.toolsFirst)
-                                    }
-                                }
-                                Label {
-                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                    text: mainSplit.orientation == Qt.Horizontal ? qsTr("Right") : qsTr("Bottom")
-                                }
-                            }
-                            Label {
-                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                text: qsTr("Orientation")
-                            }
-                            CheckBox {
-                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                id: "autoChangeOrientationSetting"
-                                text: qsTr("Change automatically")
-                                checkable: true
-                                checked: Settings.getLayoutOrientationAutoChange()
-                                onCheckedChanged: {
-                                    Settings.setLayoutOrientationAutoChange(checked)
-                                }
-                            }
-                            RowLayout {
-                                enabled: !autoChangeOrientationSetting.checked
-                                Label {
-                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                    text: qsTr("Horizontal")
-                                }
-                                Switch {
-                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                    id: "orientationSwitch"
-                                    checked: Settings.getLayoutOrientation() === Qt.Vertical
-                                    onCheckedChanged: {
-                                        Settings.setLayoutOrientation(checked? Qt.Vertical: Qt.Horizontal)
-                                    }
-                                }
-                                Label {
-                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                    text: qsTr("Vertical")
-                                }
-                            }
-                        }
+                    onAppToolPanelFirstChanged: {
+                        mainSplit.changeSplitLayoutOrder()
                     }
-            
-                    Rectangle {
-                        width: childrenRect.width + 20
-                        height: childrenRect.height + 20
-                        color: "transparent"
-                        border.color: wnd.defaultBorderColor
-                        border.width: wnd.defaultBorderWidth
-
-                        ColumnLayout {
-                            x: 10
-                            y: 10
-                            Label {
-                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                text: qsTr("Language")
-                            }
-                            ComboBox {
-                                id: "languageChangeList"
-                                currentIndex: Settings.getLanguageNum()
-                                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                                signal languageChanged(newLang: string)
-                                onActivated: {
-                                    languageChangeList.languageChanged(currentText);
-                                    Settings.setLanguageNum(currentIndex)
-                                }
-                                Component.onCompleted: {
-                                    languageChangeList.languageChanged.connect(Settings.handleChangeLanguage)
-                                }
-                                textRole: "text"
-                                model: ListModel {
-                                    id: model
-                                    ListElement {
-                                        text: "en"
-                                        img: "images/uk.png"    
-                                    }
-                                    ListElement {
-                                        text: "ru"
-                                        img: "images/ru.png"    
-                                    }
-                                }
-                                delegate: ItemDelegate {
-                                    text: model.text
-                                    icon.source: model.img
-                                }
-                            }
-                        }
-                    }
+                    actualOrientation: mainSplit.orientation
                 }
             }
         }
@@ -402,269 +260,17 @@ Window {
             id: "mainPanel"
             anchors.fill: parent
 
-            Flow {
+            CollectionInstrumentsPanel {
                 id: "collectionInstrumentsPanel"
-                width: parent.width - 10
-                x: 10
-                y: 10
-                spacing: 5
-                Row {
-                    Image {
-                        source: "images/tree.png"
-                        height: groupingMenuButton.height
-                        width: height
-                    }
-                    SpinBox {
-                        id: "lookupDepthSpinBox"
-                        from: 0
-                        to: 2
-                        value: 0
-
-                        TextMetrics {
-                            id: "lookupDepthTextMetrics"
-                            text: "0"
-                        }
-                        width: lookupDepthTextMetrics.width * 2 + up.implicitIndicatorWidth
-                        onFocusChanged: {
-                            if (activeFocus) {
-                                LoseFocusDetector.focusedObject = lookupDepthSpinBox
-                            }
-                        }
-                        ToolTip.visible: focus
-                        ToolTip.text: qsTr("Subfolders lookup depth")
-
-                        onValueChanged: {
-                            pictureProvider.lookupDepth = value                    
-                        }
-                    }
-                }
-                Button {
-                    id: groupingMenuButton
-                    text: qsTr("Grouping")
-                    onClicked: groupingMenu.visible = !groupingMenu.visible
-
-                    Menu {
-                        id: groupingMenu
-                        y: groupingMenuButton.height
-                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-
-                        CheckBox {
-                            text: qsTr("By directory")
-                            checkable: true
-                            checked: false
-                            onCheckedChanged: {
-                                mainCollection.setGrouping(PictureCollection.GroupingType.directory, checked)
-                            }
-                        }
-                        CheckBox {
-                            text: qsTr("By day")
-                            checkable: true
-                            checked: false
-                            onCheckedChanged: {
-                                mainCollection.setGrouping(PictureCollection.GroupingType.day, checked)
-                            }
-                        }                        
-                        CheckBox {
-                            text: qsTr("By month")
-                            checkable: true
-                            checked: false
-                            onCheckedChanged: {
-                                mainCollection.setGrouping(PictureCollection.GroupingType.month, checked)
-                            }
-                        }                        
-                    }
-                }
-                Row {
-                    // width: sortingMenuButton.width + inverseSortingMenuButton.width
-                    // height: sortingMenuButton.height
-                    Button {
-                        id: sortingMenuButton
-                        text: qsTr("Sorting")
-                        onClicked: sortingMenu.visible = !sortingMenu.visible
-
-                        Menu {
-                            id: sortingMenu
-                            y: sortingMenuButton.height
-                            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-
-                            RadioButton {
-                                text: qsTr("By name")
-                                checked: true
-                                onCheckedChanged: {
-                                    if (checked) {
-                                        mainCollection.setSorting(PictureCollection.SortingType.name)
-                                    }
-                                }
-                            }
-                            RadioButton {
-                                text: qsTr("By date")
-                                onCheckedChanged: {
-                                    if (checked) {
-                                        mainCollection.setSorting(PictureCollection.SortingType.date)
-                                    }
-                                }
-                            }                        
-                            RadioButton {
-                                text: qsTr("By size")
-                                onCheckedChanged: {
-                                    if (checked) {
-                                        mainCollection.setSorting(PictureCollection.SortingType.size)
-                                    }
-                                }
-                            }                        
-                        }
-                    }
-                    Button {
-                        id: inverseSortingMenuButton
-                        width: sortingMenuButton.height
-                        height: sortingMenuButton.height
-                        x: sortingMenuButton.width
-                        property bool inverseSortingFlag: false
-                        Image {
-                            source: "images/inverse.png"
-                            height: parent.height
-                            width: parent.width
-                        }
-                        onClicked: {
-                            inverseSortingFlag = !inverseSortingFlag
-                            mainCollection.setSortingInverseFlag(inverseSortingFlag)
-                        }
-                    }
-                }
-
-                Button {
-                    id: "filteringMenuButton"
-                    text: qsTr("Filtering")
-                    onClicked: {
-                        filteringMenuPopup.visible = !filteringMenuPopup.visible
-                    }
-
-                    Popup {
-                        id: "filteringMenuPopup"
-                        y: parent.height
-                        focus: visible
-                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-                        ColumnLayout {
-                            Row {
-                                Text {
-                                    text: qsTr("By date since")
-                                }
-                                CheckBox {
-                                    id: "byDateSinceFilterEnable"
-                                    checkable: true
-                                    checked: false
-                                    onCheckedChanged: {
-                                        if (checked) {
-                                            mainCollection.setFilteringByDate(byDateSinceFilterDatePicker.selectedDate, false)       
-                                        } else {
-                                            mainCollection.resetFilteringByDate(false)
-                                        }
-                                    }
-                                }
-                                DatePicker {
-                                    id: "byDateSinceFilterDatePicker"
-                                    enabled: ! byDateSinceFilterEnable.checked 
-                                }
-                            }
-                            Row {
-                                Text {
-                                    text: qsTr("By date until")
-                                }
-                                CheckBox {
-                                    id: "byDateUntilFilterEnable"
-                                    checkable: true
-                                    checked: false
-                                    onCheckedChanged: {
-                                        if (checked) {
-                                            mainCollection.setFilteringByDate(byDateUntilFilterDatePicker.selectedDate, true)       
-                                        } else {
-                                            mainCollection.resetFilteringByDate(true)
-                                        }
-                                    }
-                                }
-                                DatePicker {
-                                    id: "byDateUntilFilterDatePicker"
-                                    enabled: ! byDateUntilFilterEnable.checked 
-                                }
-                            }
-                        }
-                    }
-                }
-                Row {
-                    // width: imageSearchPatternBorder.width + resetImageSearchPatternBorder.width 
-                    // height: imageSearchPatternBorder.height
-                    Rectangle {
-                        id: "imageSearchPatternBorder"
-                        width: 100 
-                        height: childrenRect.height + border.width * 2
-                        border.color: wnd.defaultBorderColor
-                        border.width: wnd.defaultBorderWidth
-                        clip: true
-
-                        TextInput {
-                            id: "imageSearchPattern"
-                            width: parent.width - parent.border.width * 2
-                            y: parent.border.width
-                            x: parent.border.width
-                            font.pixelSize: defaultFont.pixelSize * 1.5
-                            onEditingFinished: {
-                                mainCollection.setSearchPattern(text)
-                            }
-
-                            Keys.onEscapePressed: focus = false
-                            onFocusChanged: {
-                                if (activeFocus) {
-                                    LoseFocusDetector.focusedObject = imageSearchPattern
-                                }
-                            }
-                            property string placeholderText: qsTr("Search...")
-
-                            Text {
-                                text: imageSearchPattern.placeholderText
-                                color: wnd.defaultDarkColor
-                                font: imageSearchPattern.font
-                                visible: !imageSearchPattern.text && !imageSearchPattern.activeFocus
-                            }                
-                        }
-                    }
-                    Rectangle {
-                        id: "resetImageSearchPatternBorder"
-                        height: imageSearchPatternBorder.height 
-                        width: height
-                        x: imageSearchPatternBorder.width - border.width
-                        border.color: imageSearchPatternBorder.border.color
-                        border.width: imageSearchPatternBorder.border.width
-                        Image {
-                            width: parent.width - parent.border.width * 2
-                            height: parent.height - parent.border.width * 2
-                            x: parent.border.width
-                            y: parent.border.width
-                            source: "images/cross.png"
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                imageSearchPattern.text = ""
-                                mainCollection.setSearchPattern("")
-                            }
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                id: "collectionInstrumentsPanelBorders"
                 anchors.top: parent.top
                 width: parent.width
-                height: collectionInstrumentsPanel.height + 20
-                color: "transparent"
-                border.color: wnd.defaultBorderColor
-                border.width: wnd.defaultBorderWidth
+                pictureProvider: pictureProvider
+                pictureCollection: mainCollection
             }
 
             ListView {
                 id: "fileList"
-                anchors.top: collectionInstrumentsPanelBorders.bottom
+                anchors.top: collectionInstrumentsPanel.bottom
                 anchors.bottom: parent.bottom
                 width: parent.width
                 focus: true
@@ -701,18 +307,23 @@ Window {
 
                                 previewImage.source = "file:" + model.filePath
                                 previewImage.visible = true
-                                resolutionLabel.text = previewImage.sourceSize.width+"x"+previewImage.sourceSize.height 
+                                resolutionLabel.text = 
+                                    previewImage.sourceSize.width
+                                    + "x" +previewImage.sourceSize.height 
                             }
                         }
                     }
                     Rectangle {
                         anchors.fill: parent
-                        color: isGroupLabel? wnd.defaultDarkColor:
-                               listItem.ListView.isCurrentItem ? wnd.defaultAccentColor: wnd.defaultBackgroundColor
+                        color: isGroupLabel? Constants.defaultDarkColor:
+                               listItem.ListView.isCurrentItem ?
+                               Constants.defaultAccentColor :
+                               Constants.defaultBackgroundColor
                     }
                     Image {
                         id: listItemIcon
-                        source: isGroupLabel? "images/category.png": "images/image.png"
+                        source: isGroupLabel? "images/category.png":
+                                                     "images/image.png"
                         width: listItemLabel.font.pixelSize * 1.5
                         height: width
                         anchors.verticalCenter: parent.verticalCenter
@@ -722,7 +333,7 @@ Window {
                         id: listItemLabel
                         x: listItemIcon.x + listItemIcon.width + 5
                         text: model.display
-                        font.pixelSize: wnd.defaultFont.pixelSize
+                        font.pixelSize: Constants.defaultFont.pixelSize
                     }
                 }
             }
@@ -732,9 +343,9 @@ Window {
     SplitView {
         id: "mainSplit"
         anchors.fill: parent
-        orientation: autoChangeOrientationSetting.checked ?
+        orientation: settingsTab.autoChangeOrientation ?
                      (wnd.aspectRatio > 1.0 ? Qt.Horizontal: Qt.Vertical) :
-                     (orientationSwitch.checked ? Qt.Vertical: Qt.Horizontal)
+                     settingsTab.appOrientation
 
         property bool toolsFirst: Settings.getToolPanelPosition()
         property bool toolsExpanded: true
@@ -791,22 +402,27 @@ Window {
             }
         }
         readonly property real handleVisualThickness: 8
-        readonly property real handleTouchableThickness: 64
+        readonly property real handleTouchableThickness: 32
         property color handleColor 
         handle: Rectangle {
             id: "handleDelegate"
             implicitWidth: mainSplit.handleVisualThickness
             implicitHeight: mainSplit.handleVisualThickness 
-            color: SplitHandle.pressed ? wnd.defaultAccentColor: wnd.defaultDarkColor
+            color: SplitHandle.pressed ? Constants.defaultAccentColor:
+                                             Constants.defaultDarkColor
             onColorChanged: {
                 mainSplit.handleColor = color
             }
 
             containmentMask: Item {
-                x: mainSplit.orientation == Qt.Horizontal ? (handleDelegate.width - width) / 2: 0
-                y: mainSplit.orientation == Qt.Horizontal ? 0: (handleDelegate.height - height) / 2
-                width: mainSplit.orientation == Qt.Horizontal ? mainSplit.handleTouchableThickness: mainSplit.width 
-                height: mainSplit.orientation == Qt.Horizontal ? mainSplit.height: mainSplit.handleTouchableThickness
+                x: mainSplit.orientation == Qt.Horizontal ?
+                         (handleDelegate.width - width) / 2: 0
+                y: mainSplit.orientation == Qt.Horizontal ?
+                         0: (handleDelegate.height - height) / 2
+                width: mainSplit.orientation == Qt.Horizontal ?
+                         mainSplit.handleTouchableThickness: mainSplit.width
+                height: mainSplit.orientation == Qt.Horizontal ?
+                         mainSplit.height: mainSplit.handleTouchableThickness
             }
         }
 
@@ -814,15 +430,10 @@ Window {
             id: "splitFirst"
             SplitView.minimumWidth: {SplitView.minimumWidth = 50}
             SplitView.minimumHeight: {SplitView.minimumHeight = 50}
-            SplitView.preferredWidth: wnd.width * (mainSplit.toolsFirst? 0.3: 0.7)
-            SplitView.preferredHeight: wnd.height * (mainSplit.toolsFirst? 0.3: 0.7)
-            // Component.onCompleted: {
-            //     console.log(Window.width + " " + wnd.width + " " + parent.width)
-            //     SplitView.preferredWidth = wnd.width * (mainSplit.toolsFirst? 0.3: 0.7)
-            //     SplitView.preferredHeight = wnd.height * (mainSplit.toolsFirst? 0.3: 0.7)
-            // }
-            // SplitView.preferredWidth: {console.log(mainSplit.width); SplitView.preferredWidth = mainSplit.width * (mainSplit.toolsFirst? 0.3: 0.7);}
-            // SplitView.preferredHeight: {SplitView.preferredHeight = mainSplit.height * (mainSplit.toolsFirst? 0.3: 0.7);}
+            SplitView.preferredWidth: wnd.width * 
+                                        (mainSplit.toolsFirst? 0.3: 0.7)
+            SplitView.preferredHeight: wnd.height * 
+                                        (mainSplit.toolsFirst? 0.3: 0.7)
         }
 
         ItemSavedSize {
@@ -844,27 +455,37 @@ Window {
 
     Item {
         id: "splitButton"
-        width: mainSplit.orientation == Qt.Horizontal? mainSplit.handleTouchableThickness / 2: expandImage.width
-        height: mainSplit.orientation == Qt.Horizontal? expandImage.height: mainSplit.handleTouchableThickness / 2
+        width: mainSplit.orientation == Qt.Horizontal? 
+                                    mainSplit.handleTouchableThickness / 2
+                                    : expandImage.width
+        height: mainSplit.orientation == Qt.Horizontal?
+                                    expandImage.height
+                                    : mainSplit.handleTouchableThickness / 2
         
         x: {
             var fullWidth = mainSplit.width
-            var splitPos = splitFirst.width + (mainSplit.toolsFirst? mainSplit.handleVisualThickness: 0)
+            var splitPos = splitFirst.width + 
+                (mainSplit.toolsFirst? mainSplit.handleVisualThickness: 0)
             if (mainSplit.orientation == Qt.Vertical) {
                 return fullWidth / 2 - width / 2
             }
-            var base = mainSplit.toolsExpanded ? splitPos: (mainSplit.toolsFirst ? 0: fullWidth)
-            var offset = mainSplit.toolsFirst ^ mainSplit.toolsExpanded  ? 0: -width
+            var base = mainSplit.toolsExpanded ?
+                         splitPos: (mainSplit.toolsFirst ? 0: fullWidth)
+            var offset = mainSplit.toolsFirst ^ mainSplit.toolsExpanded ?
+                                                                 0: -width
             return base + offset
         }
         y: {
             var fullHeight = mainSplit.height
-            var splitPos = splitFirst.height + (mainSplit.toolsFirst? mainSplit.handleVisualThickness: 0)
+            var splitPos = splitFirst.height +
+                     (mainSplit.toolsFirst? mainSplit.handleVisualThickness: 0)
             if (mainSplit.orientation == Qt.Horizontal) {
                 return fullHeight / 2 - height / 2
             }
-            var base = mainSplit.toolsExpanded ? splitPos: (mainSplit.toolsFirst ? 0: mainSplit.height)
-            var offset = mainSplit.toolsFirst ^ mainSplit.toolsExpanded  ? 0: -height
+            var base = mainSplit.toolsExpanded ?
+                     splitPos: (mainSplit.toolsFirst ? 0: mainSplit.height)
+            var offset = mainSplit.toolsFirst ^ mainSplit.toolsExpanded ?
+                                                                 0: -height
             return base + offset
         }
         z: mainSplit.z + 1
@@ -902,13 +523,15 @@ Window {
             }
             Image {
                 id: "expandImage"
-                source: mainSplit.orientation == Qt.Horizontal? "images/double_left.png": "images/double_top.png"
-                readonly property real smallSide: mainSplit.handleVisualThickness * 3
+                source: mainSplit.orientation == Qt.Horizontal?
+                         "images/double_left.png": "images/double_top.png"
+                readonly property real smallSide: 
+                                    mainSplit.handleVisualThickness * 3
                 readonly property real bigSide: smallSide * 2
-                width: mainSplit.orientation == Qt.Horizontal? smallSide: bigSide
-                height: mainSplit.orientation == Qt.Horizontal? bigSide: smallSide
-                // transformOrigin: Item.Center
-                // rotation: mainSplit.orientation == Qt.Horizontal? 0: 90
+                width: mainSplit.orientation == Qt.Horizontal?
+                                                 smallSide: bigSide
+                height: mainSplit.orientation == Qt.Horizontal?
+                                                 bigSide: smallSide
                 mirror: mainSplit.toolsFirst ^ mainSplit.toolsExpanded
                 mirrorVertically: mainSplit.toolsFirst ^ mainSplit.toolsExpanded
             }

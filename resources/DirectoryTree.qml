@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import localhost.DirectoryTreeModel 1.0
+import localhost.Utility 1.0
 
 TreeView {
     id: "tree"
@@ -10,16 +11,21 @@ TreeView {
     selectionModel: ItemSelectionModel {
         id: "itemSelection"
         onCurrentIndexChanged: {
-            tree.selectedDirectory = treeModel.getPath(itemSelection.currentIndex)
+            tree.selectedDirectory = 
+                treeModel.getPath(itemSelection.currentIndex)
         }
     }
     model: DirectoryTreeModel {
         id: "treeModel"
-        rootDirectory: "/home/mansur"
+        rootDirectory: Settings.getStartDirectory()
+        onRootDirectoryChanged: {
+            Settings.setStartDirectory(rootDirectory)
+        }
     }
 
     property alias rootDirectory: treeModel.rootDirectory
-    property string selectedDirectory: treeModel.getPath(itemSelection.currentIndex)
+    property string selectedDirectory:
+                         treeModel.getPath(itemSelection.currentIndex)
     property var currentIndex: itemSelection.currentIndex
     property bool hasSelection: {hasSelection = currentIndex.valid;}
     onCurrentIndexChanged: {
@@ -55,8 +61,6 @@ TreeView {
         required property int column
         required property bool current
 
-        // Rotate indicator when expanded by the user
-        // (requires TreeView to have a selectionModel)
         property Animation indicatorAnimation: NumberAnimation {
             target: indicator
             property: "rotation"
@@ -76,11 +80,13 @@ TreeView {
             anchors.fill: parent
             color: current? palette.accent: palette.base
         }
+
         MouseArea {
             anchors.fill: parent
             onClicked: {
                 var index = treeView.index(row, column)
-                selectionModel.setCurrentIndex(index, ItemSelectionModel.NoUpdate)
+                selectionModel.setCurrentIndex(index, 
+                                    ItemSelectionModel.NoUpdate)
             }
         }
 
@@ -96,7 +102,8 @@ TreeView {
             TapHandler {
                 onSingleTapped: {
                     var index = treeView.index(row, column)
-                    treeView.selectionModel.setCurrentIndex(index, ItemSelectionModel.NoUpdate)
+                    treeView.selectionModel.setCurrentIndex(index,
+                                                 ItemSelectionModel.NoUpdate)
                     if (! expanded) {
                         treeModel.expandChildAtIndex(index);
                         treeView.expand(row)

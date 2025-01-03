@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 TabButton {
     height: tabButtonText.height + 10
@@ -11,7 +10,7 @@ TabButton {
         id: "tabButtonText"
         y: 5
         x: parent.height + 5
-        font.pixelSize: wnd.defaultFont.pixelSize * 1.5
+        font.pixelSize: Constants.defaultFont.pixelSize * 1.5
     }
     Image {
         id: "image"
