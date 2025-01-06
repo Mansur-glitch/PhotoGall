@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright © 2025 Mansur Mukhametzyanov
 #include "collection.hpp"
 
 Group::Group(uint32_t id, uint32_t sampleIndex, uint32_t begin, uint32_t size)

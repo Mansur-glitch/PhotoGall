@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright © 2025 Mansur Mukhametzyanov
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -252,6 +254,7 @@ Window {
                         mainSplit.changeSplitLayoutOrder()
                     }
                     actualOrientation: mainSplit.orientation
+                    aboutProgPopupWindow: aboutProgrammPopup
                 }
             }
         }
@@ -579,6 +582,54 @@ Window {
             anchors.fill: parent
             fillMode: Image.PreserveAspectFit
             opacity: 1.0
+        }
+    }
+    
+    Popup {
+        id: "aboutProgrammPopup"
+        width: wnd.width * 2 / 3
+        height: wnd.height * 2 / 3
+        anchors.centerIn: parent
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        ScrollView {
+            width: parent.width
+            height: parent.height
+            contentWidth: availableWidth
+            Text {
+                x: 10
+                width: aboutProgrammPopup.width - 30
+                textFormat: Text.RichText
+                wrapMode: Text.Wrap
+                onLinkActivated: function(link) {
+                    Qt.openUrlExternally(link)
+                } 
+                text: qsTr("
+PhotoGall v0.0.1. Ultra minimal photo gallery<br>
+Copyright (C) 2025 Mansur Mukhametzyanov<br>
+<br>
+Github: <a href=\"https://github.com/Mansur-glitch/PhotoGall\">https://github.com/Mansur-glitch/PhotoGall</a><br>
+Icons: <a href=\"https://uxwing.com/\">https://uxwing.com</a><br>
+<br>
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>
+<br>
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.<br>
+<br>
+You should have received a copy of the GNU General Public License along with this program. If not, see <a href=\"https://www.gnu.org/licenses/\">&lt;https://www.gnu.org/licenses/&gt;</a>")
+            }
+        }
+        Button {
+            anchors.top: parent.top
+            anchors.right: parent.right
+            width: 50
+            height: 50
+            icon.source: "images/cross.png"
+            icon.width: 50
+            icon.height: 50
+            hoverEnabled: true
+            opacity: hovered? 1.0: 0.6
+            onClicked: {
+                aboutProgrammPopup.visible = false       
+            }
         }
     }
 }

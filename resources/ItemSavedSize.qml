@@ -1,4 +1,6 @@
-import QtQuick 2.15
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright © 2025 Mansur Mukhametzyanov
+import QtQuick
 
 Item {
     property real savedWidth

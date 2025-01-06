@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright © 2025 Mansur Mukhametzyanov
 #include "picture_list_model.hpp"
 
 #include <QImage>

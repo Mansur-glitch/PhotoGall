@@ -1,5 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright © 2025 Mansur Mukhametzyanov
 cmake_minimum_required(VERSION 3.24.0)
-# find_package(Qt6 COMPONENTS Core Widgets Quick Test REQUIRED)
 find_package(Boost COMPONENTS Headers REQUIRED)
 
 add_library(collection STATIC collection.cpp)
